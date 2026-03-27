@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     category    TEXT NOT NULL DEFAULT 'uncategorized'
                     CHECK (category IN ('personal', 'common', 'uncategorized')),
     created_at  TIMESTAMPTZ DEFAULT now(),
-    UNIQUE ("user", date, description, amount)
+    UNIQUE ("user", date, description, amount, source)
 );
 
 -- ============================================================

@@ -8,8 +8,6 @@ import streamlit as st
 
 from budget import db, importer, calculator
 
-st.set_page_config(page_title="Upload", page_icon="📤", layout="wide")
-
 # Guard: require login
 if not st.session_state.get("authenticated"):
     st.warning("Please log in from the Home page.")

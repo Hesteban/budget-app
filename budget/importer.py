@@ -11,6 +11,16 @@ import io
 from datetime import date
 
 import pandas as pd
+import streamlit as st
+
+# ---------------------------------------------------------------------------
+# Configuration — driven by .streamlit/secrets.toml [bank] header_row
+# Falls back to 10 (row 11 in Excel) if secrets not available.
+# ---------------------------------------------------------------------------
+try:
+    BANK_HEADER_ROW: int = int(st.secrets["bank"]["header_row"])
+except Exception:
+    BANK_HEADER_ROW: int = 10  # 0-based: row 11 in Excel
 
 # ---------------------------------------------------------------------------
 # Column signatures used to detect format
@@ -95,11 +105,23 @@ def parse_card_format(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_xls(file_bytes: bytes, filename: str) -> pd.DataFrame:
-    """Read raw XLS/XLSX bytes into a DataFrame."""
+    """Read raw XLS/XLSX bytes into a DataFrame, skipping bank header rows."""
     buf = io.BytesIO(file_bytes)
-    if filename.lower().endswith(".xls"):
-        return pd.read_excel(buf, engine="xlrd")
-    return pd.read_excel(buf, engine="openpyxl")
+    engine = "xlrd" if filename.lower().endswith(".xls") else "openpyxl"
+    df = pd.read_excel(buf, engine=engine, header=BANK_HEADER_ROW)
+    # Sanity check: if none of the expected columns are found, fall back to
+    # auto-detection (header=None then find the right row)
+    cols_lower = {str(c).lower().strip() for c in df.columns}
+    if not (ACCOUNT_COLS | CARD_COLS) & cols_lower:
+        buf.seek(0)
+        raw = pd.read_excel(buf, engine=engine, header=None)
+        for i, row in raw.iterrows():
+            row_vals = {str(v).lower().strip() for v in row.values if pd.notna(v)}
+            if ACCOUNT_COLS & row_vals or CARD_COLS & row_vals:
+                buf.seek(0)
+                df = pd.read_excel(buf, engine=engine, header=i)
+                break
+    return df
 
 
 def parse_bank_file(
@@ -143,6 +165,10 @@ def parse_bank_file(
 
     # Keep only rows with actual amounts
     df = df[df["amount"].notna()].copy()
+
+    # Deduplicate within the file itself before sending to Supabase.
+    # The unique constraint is (user, date, description, amount, source) — same as DB.
+    df = df.drop_duplicates(subset=["user", "date", "description", "amount", "source"])
 
     return df, fmt
 

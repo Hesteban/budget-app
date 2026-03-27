@@ -43,7 +43,7 @@ def upsert_transactions(rows: list[dict]) -> None:
     if not rows:
         return
     get_client().table("transactions").upsert(
-        rows, on_conflict="user,date,description,amount"
+        rows, on_conflict="user,date,description,amount,source"
     ).execute()
 
 

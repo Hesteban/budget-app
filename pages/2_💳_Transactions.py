@@ -9,8 +9,6 @@ import streamlit as st
 
 from budget import db, calculator
 
-st.set_page_config(page_title="Transactions", page_icon="💳", layout="wide")
-
 if not st.session_state.get("authenticated"):
     st.warning("Please log in from the Home page.")
     st.stop()
