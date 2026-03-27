@@ -35,10 +35,6 @@ if "active_user" not in st.session_state:
 # Sidebar — persistent user info
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.image(
-        "https://img.icons8.com/fluency/96/euro.png",
-        width=60,
-    )
     st.title("Budget App 💶")
     if st.session_state["authenticated"]:
         st.success(f"👤 {st.session_state['active_user'] or 'No user selected'}")
