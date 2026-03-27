@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from budget import db, calculator
+from budget.ai_categorizer import categorize_transaction, CONFIDENCE_THRESHOLD
 
 if not st.session_state.get("authenticated"):
     st.warning("Please log in from the Home page.")
@@ -136,6 +137,33 @@ with col1:
             db.bulk_update_categories(updates)
             calculator.calculate_settlement(month, year)
         st.success(f"Saved {len(updates)} change(s) and updated settlement.")
+        st.rerun()
+
+    uncategorized_rows = [t for t in all_tx if t["category"] == "uncategorized"]
+    if st.button(
+        f"🤖 Auto-categorize ({len(uncategorized_rows)} left)",
+        disabled=len(uncategorized_rows) == 0,
+        use_container_width=True,
+    ):
+        updates = []
+        skipped = 0
+        placeholder = st.empty()
+        total = len(uncategorized_rows)
+        for i, tx in enumerate(uncategorized_rows, start=1):
+            placeholder.caption(f"Categorizing {i}/{total}: {tx['description']}…")
+            result = categorize_transaction(tx["description"], tx["amount"], tx["source"])
+            if result.confidence >= CONFIDENCE_THRESHOLD:
+                updates.append({"id": tx["id"], "category": result.category})
+            else:
+                skipped += 1
+        placeholder.empty()
+        if updates:
+            db.bulk_update_categories(updates)
+            calculator.calculate_settlement(month, year)
+        st.success(
+            f"✅ {len(updates)} auto-categorized, "
+            f"{skipped} skipped (low confidence — review manually)."
+        )
         st.rerun()
 
 with col2:

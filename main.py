@@ -6,6 +6,8 @@ Flow:
   2. User selects "I am Laerke" or "I am Héctor" → active_user set.
   3. Sidebar shows active user and navigation throughout.
 """
+import os
+
 import bcrypt
 import streamlit as st
 
@@ -15,6 +17,11 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# ---------------------------------------------------------------------------
+# OpenAI API key — set once at startup so all pages inherit it
+# ---------------------------------------------------------------------------
+os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["api_key"]
 
 # ---------------------------------------------------------------------------
 # Session state defaults
