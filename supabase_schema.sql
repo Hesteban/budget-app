@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     amount      NUMERIC(10, 2) NOT NULL,
     source      TEXT NOT NULL CHECK (source IN ('account', 'card')),
     category    TEXT NOT NULL DEFAULT 'uncategorized'
-                    CHECK (category IN ('personal', 'common', 'uncategorized')),
+                    CHECK (category IN ('personal', 'common', 'uncategorized', 'covered')),
     created_at  TIMESTAMPTZ DEFAULT now(),
     UNIQUE ("user", date, description, amount, source)
 );

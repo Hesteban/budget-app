@@ -49,7 +49,7 @@ with st.sidebar:
     )
     cat_filter = st.selectbox(
         "Category",
-        options=["All", "uncategorized", "personal", "common"],
+        options=["All", "uncategorized", "personal", "common", "covered"],
         index=0,
         key="tx_cat_filter",
     )
@@ -91,7 +91,7 @@ df["date"] = pd.to_datetime(df["date"]).dt.strftime("%d/%m/%Y")
 df["amount"] = df["amount"].apply(lambda x: float(x))
 
 # Category column as a selectable type
-CATEGORIES = ["uncategorized", "personal", "common"]
+CATEGORIES = ["uncategorized", "personal", "common", "covered"]
 
 edited_df = st.data_editor(
     df,
