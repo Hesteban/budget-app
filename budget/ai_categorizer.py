@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Literal
 
 from agents import Agent, Runner
+from agents.tracing import trace
 from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
@@ -46,11 +47,11 @@ The couple is Laerke and Hector. They split common household expenses 50/50.
 
 Categories:
 - 'common': Shared expense both people benefit from (groceries, rent, utilities,
-  streaming services, restaurants together, household supplies, etc.)
-- 'personal': Expense for one person only (clothing, personal health,
+  streaming services, restaurants together, household supplies, petrol stations;
+  Some examples: PANADERIA, BM (supermarket), DIA (supermarket), ALDI (supermarket), E.S BECERRIl (meaming Estacion de servicio gasolina), FCIA (meaning Farmacia) )
+- 'personal': Expense for one person only (clothing, personal health, bank operations
   solo transport, individual hobbies, etc.)
-- 'covered': Already reimbursed or handled outside the app; should be excluded
-  from the settlement calculation.
+- 'covered': This is not possible to categorize by an LLM , so just not use it
 - 'uncategorized': Genuinely unclear from the description alone; insufficient
   information to decide.
 
@@ -81,5 +82,6 @@ def categorize_transaction(
         f"Amount: €{amount:.2f}\n"
         f"Source: {source}"
     )
-    result = Runner.run_sync(_agent, prompt)
+    with trace("categorize_transaction", metadata={"description": description}):
+        result = Runner.run_sync(_agent, prompt)
     return result.final_output
