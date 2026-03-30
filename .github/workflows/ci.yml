@@ -28,7 +28,7 @@ jobs:
       - name: Run pytest
         env:
           APP_ENV: test        # activates FakeRepository; no Supabase creds needed
-        run: pytest tests/ -v --tb=short
+        run: pytest tests/unittests/ -v --tb=short
 
   e2e:
     name: E2E tests (Playwright)
