@@ -12,7 +12,7 @@ import io
 import openpyxl
 import pytest
 
-from budget.repository import FakeRepository
+from budget.fake_repository import FakeRepository
 
 
 # ---------------------------------------------------------------------------

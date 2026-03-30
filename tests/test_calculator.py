@@ -13,7 +13,7 @@ from unittest.mock import patch
 import pytest
 
 from budget import calculator
-from budget.repository import FakeRepository
+from budget.fake_repository import FakeRepository
 from tests.conftest import MONTH, YEAR
 
 
@@ -55,8 +55,13 @@ def _run_get_or_calculate(repo: FakeRepository) -> dict | None:
 # ---------------------------------------------------------------------------
 
 class TestCalculateSettlement:
+    @pytest.fixture(autouse=True)
+    def _result(self, repo: FakeRepository) -> None:
+        """Run calculator once for the whole class, store on self."""
+        self.result = _run_calculator(repo)
+        self.repo = repo
+    
     def test_returns_correct_keys(self, repo: FakeRepository) -> None:
-        result = _run_calculator(repo)
         expected_keys = {
             "month", "year",
             "laerke_common", "hector_common",
@@ -64,43 +69,37 @@ class TestCalculateSettlement:
             "laerke_personal", "hector_personal",
             "balance", "who_pays_whom",
         }
-        assert expected_keys == set(result.keys())
+        assert expected_keys == set(self.result.keys())
 
     def test_month_year_correct(self, repo: FakeRepository) -> None:
-        result = _run_calculator(repo)
-        assert result["month"] == MONTH
-        assert result["year"] == YEAR
+        assert self.result["month"] == MONTH
+        assert self.result["year"] == YEAR
 
     def test_hector_common_sum(self, repo: FakeRepository) -> None:
         # From conftest: Mercadona 85.30 + Netflix 15.99 + Ikea 60.50
         #                + El Corte Ingles 25.00 + Carrefour 47.60 = 234.39
-        result = _run_calculator(repo)
-        assert result["hector_common"] == pytest.approx(234.39, abs=0.01)
+        assert self.result["hector_common"] == pytest.approx(234.39, abs=0.01)
 
     def test_laerke_common_sum(self, repo: FakeRepository) -> None:
         # From conftest: Netto 72.40 + IKEA 44.90 + Bioparc 28.00 + Lidl 55.10 = 200.40
         # Netto duplicate is dropped by upsert, so counted once only.
-        result = _run_calculator(repo)
-        assert result["laerke_common"] == pytest.approx(200.40, abs=0.01)
+        assert self.result["laerke_common"] == pytest.approx(200.40, abs=0.01)
 
     def test_fixed_expenses_only_active(self, repo: FakeRepository) -> None:
         # Hector active fixed: 250.00 + 45.00 = 295.00
         # Laerke active fixed: 180.00 only (Phone plan is inactive)
-        result = _run_calculator(repo)
-        assert result["fixed_hector"] == pytest.approx(295.00, abs=0.01)
-        assert result["fixed_laerke"] == pytest.approx(180.00, abs=0.01)
+        assert self.result["fixed_hector"] == pytest.approx(295.00, abs=0.01)
+        assert self.result["fixed_laerke"] == pytest.approx(180.00, abs=0.01)
 
     def test_balance_formula(self, repo: FakeRepository) -> None:
-        result = _run_calculator(repo)
-        total_laerke = result["laerke_common"] + result["fixed_laerke"]
-        total_hector = result["hector_common"] + result["fixed_hector"]
+        total_laerke = self.result["laerke_common"] + self.result["fixed_laerke"]
+        total_hector = self.result["hector_common"] + self.result["fixed_hector"]
         expected_balance = total_laerke - (total_laerke + total_hector) / 2
-        assert result["balance"] == pytest.approx(expected_balance, abs=0.01)
+        assert self.result["balance"] == pytest.approx(expected_balance, abs=0.01)
 
     def test_who_pays_whom_text(self, repo: FakeRepository) -> None:
-        result = _run_calculator(repo)
-        wph = result["who_pays_whom"]
-        balance = result["balance"]
+        wph = self.result["who_pays_whom"]
+        balance = self.result["balance"]
         if balance > 0.005:
             assert wph.startswith("Hector pays Laerke")
         elif balance < -0.005:
@@ -109,7 +108,6 @@ class TestCalculateSettlement:
             assert wph == "All settled ✓"
 
     def test_result_persisted_to_repo(self, repo: FakeRepository) -> None:
-        _run_calculator(repo)
         saved = repo.get_monthly_summary(MONTH, YEAR)
         assert saved is not None
         assert saved["month"] == MONTH
@@ -117,7 +115,7 @@ class TestCalculateSettlement:
 
     def test_personal_not_included_in_balance(self, repo: FakeRepository) -> None:
         """Personal expenses are tracked but must NOT affect balance."""
-        result_before = _run_calculator(repo)
+        result_before = self.result
         balance_before = result_before["balance"]
 
         # Add a large personal expense for Hector — balance must stay the same

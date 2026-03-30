@@ -15,12 +15,9 @@ import os
 import streamlit as st
 from supabase import create_client, Client
 
-from budget.repository import BudgetRepository, FakeRepository
+from budget.budget_repository import BudgetRepository
+from budget.fake_repository import FakeRepository
 
-
-# ---------------------------------------------------------------------------
-# Supabase client singleton (only used by SupabaseRepository)
-# ---------------------------------------------------------------------------
 
 @st.cache_resource
 def _get_supabase_client() -> Client:
@@ -32,10 +29,6 @@ def _get_supabase_client() -> Client:
 # Keep old name for any external references
 get_client = _get_supabase_client
 
-
-# ---------------------------------------------------------------------------
-# SupabaseRepository — production implementation
-# ---------------------------------------------------------------------------
 
 class SupabaseRepository:
     """Thin wrapper around the supabase-py client."""
@@ -168,10 +161,8 @@ class SupabaseRepository:
         return len(rows) > 0
 
 
-# ---------------------------------------------------------------------------
-# Repository factory
-# ---------------------------------------------------------------------------
 
+# Repository factory
 # Module-level singleton for the fake repo so all callers in a test session
 # share the same in-memory state (mirrors how Supabase is a shared service).
 _fake_repo: FakeRepository | None = None

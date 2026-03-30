@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: ["main"]
 
-# ---------------------------------------------------------------------------
-# Unit / integration tests (no Supabase — FakeRepository via APP_ENV=test)
-# ---------------------------------------------------------------------------
 jobs:
   test:
     name: Unit tests
