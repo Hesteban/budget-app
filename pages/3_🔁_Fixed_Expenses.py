@@ -19,9 +19,6 @@ st.caption(
     "Toggle **Active** to include/exclude from calculations."
 )
 
-# ---------------------------------------------------------------------------
-# Display + edit existing fixed expenses
-# ---------------------------------------------------------------------------
 
 def render_user_section(user: str) -> None:
     st.subheader(f"{'🟥' if user == 'Laerke' else '🟦'} {user}")
@@ -100,9 +97,7 @@ with col_left:
 with col_right:
     render_user_section("Hector")
 
-# ---------------------------------------------------------------------------
-# Summary totals
-# ---------------------------------------------------------------------------
+
 st.divider()
 all_fixed = db.get_fixed_expenses()
 laerke_total = sum(f["amount"] for f in all_fixed if f["user"] == "Laerke" and f["active"])

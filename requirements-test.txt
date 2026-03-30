@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Testing
+pytest>=8.0
+pytest-playwright>=0.5   # stubbed — used in E2E phase (run-e2e-tests job)
