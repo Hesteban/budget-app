@@ -37,6 +37,15 @@ with st.sidebar:
     else:
         st.info("Please log in.")
 
+# ---------------------------------------------------------------------------
+# TEST ONLY — auto-login when APP_ENV=test (CI / Playwright).
+# This block MUST never run in production; it is gated behind an env var
+# that is only set in CI workflows and local test runs.
+# ---------------------------------------------------------------------------
+if os.getenv("APP_ENV") == "test" and not st.session_state["authenticated"]:
+    st.session_state["authenticated"] = True
+    st.session_state["active_user"] = "Hector"
+    st.rerun()
 
 if not st.session_state["authenticated"]:
     st.title("Welcome to Budget App 💶")
