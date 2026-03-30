@@ -18,13 +18,10 @@ if not active_user:
     st.warning("Please select your user on the Home page.")
     st.stop()
 
-# ---------------------------------------------------------------------------
 st.title("📤 Upload Bank Movements")
 st.caption(f"Uploading as: **{active_user}**")
 
-# ---------------------------------------------------------------------------
-# Month / Year selector
-# ---------------------------------------------------------------------------
+
 col1, col2 = st.columns(2)
 with col1:
     month = st.selectbox(
@@ -45,9 +42,6 @@ with col2:
 month = int(month)
 year = int(year)
 
-# ---------------------------------------------------------------------------
-# File uploader
-# ---------------------------------------------------------------------------
 st.divider()
 uploaded = st.file_uploader(
     "Upload your bank export (.xls or .xlsx)",

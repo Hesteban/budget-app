@@ -22,9 +22,6 @@ try:
 except Exception:
     BANK_HEADER_ROW: int = 10  # 0-based: row 11 in Excel
 
-# ---------------------------------------------------------------------------
-# Column signatures used to detect format
-# ---------------------------------------------------------------------------
 ACCOUNT_COLS = {"fecha de operación", "concepto", "importe", "saldo"}
 CARD_COLS = {"fecha operación", "nombre comercio", "importe", "hora"}
 

@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from budget import db, calculator
+from budget.ai_categorizer import categorize_transaction, CONFIDENCE_THRESHOLD
 
 if not st.session_state.get("authenticated"):
     st.warning("Please log in from the Home page.")
@@ -15,9 +16,7 @@ if not st.session_state.get("authenticated"):
 
 active_user: str = st.session_state.get("active_user", "")
 
-# ---------------------------------------------------------------------------
-# Month / Year selector  (sidebar)
-# ---------------------------------------------------------------------------
+
 with st.sidebar:
     st.header("Filter")
     col1, col2 = st.columns(2)
@@ -54,9 +53,6 @@ with st.sidebar:
         key="tx_cat_filter",
     )
 
-# ---------------------------------------------------------------------------
-# Load data
-# ---------------------------------------------------------------------------
 all_tx = db.get_transactions(
     month, year, user=None if user_filter == "All" else user_filter
 )
@@ -82,9 +78,6 @@ if cat_filter != "All":
 else:
     display_tx = all_tx
 
-# ---------------------------------------------------------------------------
-# Build editable DataFrame
-# ---------------------------------------------------------------------------
 df = pd.DataFrame(display_tx)
 df = df[["id", "user", "date", "description", "amount", "source", "category"]].copy()
 df["date"] = pd.to_datetime(df["date"]).dt.strftime("%d/%m/%Y")
@@ -118,9 +111,6 @@ edited_df = st.data_editor(
     num_rows="fixed",
 )
 
-# ---------------------------------------------------------------------------
-# Detect changes and persist
-# ---------------------------------------------------------------------------
 changed = edited_df[edited_df["category"] != df["category"]]
 
 col1, col2 = st.columns([1, 3])
@@ -136,6 +126,33 @@ with col1:
             db.bulk_update_categories(updates)
             calculator.calculate_settlement(month, year)
         st.success(f"Saved {len(updates)} change(s) and updated settlement.")
+        st.rerun()
+
+    uncategorized_rows = [t for t in all_tx if t["category"] == "uncategorized"]
+    if st.button(
+        f"🤖 Auto-categorize ({len(uncategorized_rows)} left)",
+        disabled=len(uncategorized_rows) == 0,
+        use_container_width=True,
+    ):
+        updates = []
+        skipped = 0
+        placeholder = st.empty()
+        total = len(uncategorized_rows)
+        for i, tx in enumerate(uncategorized_rows, start=1):
+            placeholder.caption(f"Categorizing {i}/{total}: {tx['description']}…")
+            result = categorize_transaction(tx["description"], tx["amount"], tx["source"])
+            if result.confidence >= CONFIDENCE_THRESHOLD:
+                updates.append({"id": tx["id"], "category": result.category})
+            else:
+                skipped += 1
+        placeholder.empty()
+        if updates:
+            db.bulk_update_categories(updates)
+            calculator.calculate_settlement(month, year)
+        st.success(
+            f"✅ {len(updates)} auto-categorized, "
+            f"{skipped} skipped (low confidence — review manually)."
+        )
         st.rerun()
 
 with col2:

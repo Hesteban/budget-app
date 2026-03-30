@@ -13,9 +13,6 @@ if not st.session_state.get("authenticated"):
     st.warning("Please log in from the Home page.")
     st.stop()
 
-# ---------------------------------------------------------------------------
-# Month selector
-# ---------------------------------------------------------------------------
 st.title("📊 Monthly Summary")
 
 col1, col2 = st.columns(2)
@@ -38,9 +35,7 @@ with col2:
 month = int(month)
 year = int(year)
 
-# ---------------------------------------------------------------------------
-# Recalculate on demand
-# ---------------------------------------------------------------------------
+
 if st.button("🔄 Recalculate settlement", type="primary"):
     with st.spinner("Calculating…"):
         calculator.calculate_settlement(month, year)
@@ -56,9 +51,6 @@ if summary is None:
     )
     st.stop()
 
-# ---------------------------------------------------------------------------
-# Settlement card
-# ---------------------------------------------------------------------------
 st.divider()
 st.subheader(f"Settlement — {calendar.month_name[month]} {year}")
 
@@ -84,9 +76,6 @@ st.markdown(
 
 st.divider()
 
-# ---------------------------------------------------------------------------
-# Breakdown metrics
-# ---------------------------------------------------------------------------
 st.subheader("Breakdown")
 c1, c2 = st.columns(2)
 
@@ -110,9 +99,7 @@ with c2:
     )
     st.metric("Personal expenses (info)", f"€{summary['hector_personal']:.2f}")
 
-# ---------------------------------------------------------------------------
-# Multi-month bar chart
-# ---------------------------------------------------------------------------
+
 st.divider()
 st.subheader("📈 Multi-month comparison — Common expenses")
 
