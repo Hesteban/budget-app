@@ -16,9 +16,7 @@ if not st.session_state.get("authenticated"):
 
 active_user: str = st.session_state.get("active_user", "")
 
-# ---------------------------------------------------------------------------
-# Month / Year selector  (sidebar)
-# ---------------------------------------------------------------------------
+
 with st.sidebar:
     st.header("Filter")
     col1, col2 = st.columns(2)
@@ -55,9 +53,6 @@ with st.sidebar:
         key="tx_cat_filter",
     )
 
-# ---------------------------------------------------------------------------
-# Load data
-# ---------------------------------------------------------------------------
 all_tx = db.get_transactions(
     month, year, user=None if user_filter == "All" else user_filter
 )
@@ -83,9 +78,6 @@ if cat_filter != "All":
 else:
     display_tx = all_tx
 
-# ---------------------------------------------------------------------------
-# Build editable DataFrame
-# ---------------------------------------------------------------------------
 df = pd.DataFrame(display_tx)
 df = df[["id", "user", "date", "description", "amount", "source", "category"]].copy()
 df["date"] = pd.to_datetime(df["date"]).dt.strftime("%d/%m/%Y")
@@ -119,9 +111,6 @@ edited_df = st.data_editor(
     num_rows="fixed",
 )
 
-# ---------------------------------------------------------------------------
-# Detect changes and persist
-# ---------------------------------------------------------------------------
 changed = edited_df[edited_df["category"] != df["category"]]
 
 col1, col2 = st.columns([1, 3])

@@ -14,15 +14,8 @@ from agents import Agent, Runner
 from agents.tracing import trace
 from pydantic import BaseModel, Field
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 
 CONFIDENCE_THRESHOLD = 0.85
-
-# ---------------------------------------------------------------------------
-# Structured output model
-# ---------------------------------------------------------------------------
 
 ValidCategory = Literal["personal", "common", "covered", "uncategorized"]
 
@@ -33,17 +26,12 @@ class CategoryResult(BaseModel):
     reasoning: str
 
 
-# ---------------------------------------------------------------------------
-# Agent (module-level singleton — reused across calls)
-# ---------------------------------------------------------------------------
-
 _agent = Agent(
     name="TransactionCategorizer",
     model="gpt-4o-mini",
     instructions="""
 You categorize Spanish bank transactions for a couple tracking shared monthly expenses.
-
-The couple is Laerke and Hector. They split common household expenses 50/50.
+They split common household expenses 50/50.
 
 Categories:
 - 'common': Shared expense both people benefit from (groceries, rent, utilities,
@@ -66,13 +54,7 @@ a brief one-sentence reasoning.
 )
 
 
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
-def categorize_transaction(
-    description: str, amount: float, source: str
-) -> CategoryResult:
+def categorize_transaction( description: str, amount: float, source: str) -> CategoryResult:
     """
     Categorize a single transaction synchronously.
     Returns a CategoryResult with category, confidence, and reasoning.

@@ -19,9 +19,7 @@ from __future__ import annotations
 from budget import db
 
 
-# ---------------------------------------------------------------------------
-# Auto-carry fixed expenses into a new month (no-op if already have data)
-# ---------------------------------------------------------------------------
+
 
 def ensure_month_exists(month: int, year: int) -> None:
     """
@@ -48,10 +46,6 @@ def ensure_month_exists(month: int, year: int) -> None:
             }
         )
 
-
-# ---------------------------------------------------------------------------
-# Main calculator
-# ---------------------------------------------------------------------------
 
 def calculate_settlement(month: int, year: int) -> dict:
     """

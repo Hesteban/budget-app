@@ -8,6 +8,7 @@ Flow:
 """
 import os
 
+from budget import db
 import bcrypt
 import streamlit as st
 
@@ -18,22 +19,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ---------------------------------------------------------------------------
-# OpenAI API key — set once at startup so all pages inherit it
-# ---------------------------------------------------------------------------
 os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["api_key"]
 
-# ---------------------------------------------------------------------------
-# Session state defaults
-# ---------------------------------------------------------------------------
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "active_user" not in st.session_state:
     st.session_state["active_user"] = ""
 
-# ---------------------------------------------------------------------------
-# Sidebar — persistent user info
-# ---------------------------------------------------------------------------
 with st.sidebar:
     st.title("Budget App 💶")
     if st.session_state["authenticated"]:
@@ -45,9 +37,7 @@ with st.sidebar:
     else:
         st.info("Please log in.")
 
-# ---------------------------------------------------------------------------
-# Auth gate
-# ---------------------------------------------------------------------------
+
 if not st.session_state["authenticated"]:
     st.title("Welcome to Budget App 💶")
     st.markdown(
@@ -76,9 +66,6 @@ if not st.session_state["authenticated"]:
 
     st.stop()
 
-# ---------------------------------------------------------------------------
-# User selector
-# ---------------------------------------------------------------------------
 st.title("Budget App 💶")
 st.markdown(
     f"**Date:** {__import__('datetime').date.today().strftime('%d %B %Y')}"
@@ -114,14 +101,11 @@ if st.session_state["active_user"]:
 else:
     st.info("Please select your user to continue.")
 
-# ---------------------------------------------------------------------------
-# Quick stats (if Supabase is configured)
-# ---------------------------------------------------------------------------
+
 st.divider()
 st.subheader("📋 Quick overview")
 
 try:
-    from budget import db
 
     months = db.months_with_data()
     if not months:
