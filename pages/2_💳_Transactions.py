@@ -8,7 +8,6 @@ import pandas as pd
 import streamlit as st
 
 from budget import db, calculator
-from budget.ai_categorizer import categorize_transaction, CONFIDENCE_THRESHOLD
 
 if not st.session_state.get("authenticated"):
     st.warning("Please log in from the Home page.")
@@ -134,6 +133,7 @@ with col1:
         disabled=len(uncategorized_rows) == 0,
         use_container_width=True,
     ):
+        from budget.ai_categorizer import categorize_transaction, CONFIDENCE_THRESHOLD  # noqa: PLC0415
         updates = []
         skipped = 0
         placeholder = st.empty()
