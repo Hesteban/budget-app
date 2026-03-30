@@ -1,10 +1,5 @@
 """
-E2E — Transactions page happy path.
-
-Scenario:
-  Given I am logged in (auto-login as Héctor via APP_ENV=test)
-  When  I navigate to the Transactions page
-  Then  I can see Hector's transactions for March 2026
+E2E — Transactions 
 """
 from __future__ import annotations
 
@@ -36,7 +31,7 @@ def test_transactions_page_shows_march_2026_data(transactions_page: Page) -> Non
     ).to_be_visible(timeout=10_000)
 
     # Assert the dataframe grid container is rendered
-    expect(transactions_page.locator(".stDataFrameGlideDataEditor")).to_be_visible()
+    expect(transactions_page.locator(".dvn-scroller.stDataFrameGlideDataEditor")).to_be_visible()
     
     expect(
         transactions_page.get_by_text(
