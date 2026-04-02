@@ -92,3 +92,65 @@ def account_xlsx_bytes() -> bytes:
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# multi_month_xlsx_bytes fixture
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def multi_month_xlsx_bytes() -> bytes:
+    """
+    In-memory .xlsx bytes with transactions from 3 months (Jan/Feb/Mar 2026).
+    Account format. Used to test bulk parsing (parse_bank_file_bulk).
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+
+    # Rows 1-10: blank filler
+    for _ in range(10):
+        ws.append([""] * 5)
+
+    # Row 11: column headers (account format)
+    ws.append([
+        "Fecha de operación",
+        "Fecha valor",
+        "Concepto",
+        "Importe",
+        "Divisa",
+        "Saldo",
+        "Nº mov",
+        "Oficina",
+    ])
+
+    # January 2026 (3 transactions)
+    january_rows = [
+        ("05/01/2026", "05/01/2026", "New Year Groceries", "-45,50", "EUR", "2000,00", "1", "001"),
+        ("15/01/2026", "15/01/2026", "Electricity Jan",    "-72,00", "EUR", "1955,00", "2", "001"),
+        ("25/01/2026", "25/01/2026", "Restaurant",         "-38,75", "EUR", "1916,25", "3", "001"),
+    ]
+    for row in january_rows:
+        ws.append(list(row))
+
+    # February 2026 (3 transactions)
+    february_rows = [
+        ("08/02/2026", "08/02/2026", "Gym Membership",     "-50,00", "EUR", "1866,25", "4", "001"),
+        ("12/02/2026", "12/02/2026", "Groceries Feb",      "-65,30", "EUR", "1800,95", "5", "001"),
+        ("28/02/2026", "28/02/2026", "Utilities Feb",      "-88,50", "EUR", "1712,45", "6", "001"),
+    ]
+    for row in february_rows:
+        ws.append(list(row))
+
+    # March 2026 (4 transactions)
+    march_rows = [
+        ("05/03/2026", "05/03/2026", "Groceries Mar",      "-52,20", "EUR", "1660,25", "7", "001"),
+        ("10/03/2026", "10/03/2026", "Pharmacy",           "-22,40", "EUR", "1637,85", "8", "001"),
+        ("18/03/2026", "18/03/2026", "Cinema tickets",     "-30,00", "EUR", "1607,85", "9", "001"),
+        ("28/03/2026", "28/03/2026", "Internet",           "-55,00", "EUR", "1552,85", "10", "001"),
+    ]
+    for row in march_rows:
+        ws.append(list(row))
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
