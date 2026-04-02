@@ -19,7 +19,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["api_key"]
+if os.getenv("APP_ENV") != "test":
+    os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["api_key"]
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -43,6 +44,21 @@ with st.sidebar:
 # that is only set in CI workflows and local test runs.
 # ---------------------------------------------------------------------------
 if os.getenv("APP_ENV") == "test" and not st.session_state["authenticated"]:
+    # Seed the in-memory FakeRepository once (idempotent — skipped if data exists)
+    from tests.seed_data import (
+        FIXED_EXPENSES,
+        HECTOR_TRANSACTIONS,
+        LAERKE_TRANSACTIONS,
+        MONTH,
+        YEAR,
+        make_tx,
+    )
+    if not db.get_transactions(MONTH, YEAR):
+        db.upsert_transactions([make_tx("Hector", tx) for tx in HECTOR_TRANSACTIONS])
+        db.upsert_transactions([make_tx("Laerke", tx) for tx in LAERKE_TRANSACTIONS])
+        for fe in FIXED_EXPENSES:
+            db.upsert_fixed_expense(fe)
+
     st.session_state["authenticated"] = True
     st.session_state["active_user"] = "Hector"
     st.rerun()

@@ -22,7 +22,7 @@ from budget.importer import (
     parse_account_format,
     parse_card_format,
 )
-from tests.conftest import MONTH, YEAR
+from tests.seed_data import MONTH, YEAR
 
 
 # ---------------------------------------------------------------------------

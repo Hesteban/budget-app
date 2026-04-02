@@ -14,7 +14,7 @@ import pytest
 
 from budget import calculator
 from budget.fake_repository import FakeRepository
-from tests.conftest import MONTH, YEAR
+from tests.seed_data import MONTH, YEAR
 
 
 # ---------------------------------------------------------------------------
