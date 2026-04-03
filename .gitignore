@@ -9,3 +9,5 @@ data/
 
 # vscode
 .vscode/
+
+.playwright-mcp/

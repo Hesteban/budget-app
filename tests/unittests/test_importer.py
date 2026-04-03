@@ -19,6 +19,7 @@ from budget.importer import (
     detect_format,
     df_to_records,
     parse_bank_file,
+    parse_bank_file_bulk,
     parse_account_format,
     parse_card_format,
 )
@@ -228,3 +229,156 @@ class TestDfToRecords:
         df, _ = parse_bank_file(account_xlsx_bytes, "test.xlsx", "Hector", MONTH, YEAR)
         records = df_to_records(df)
         assert len(records) == len(df)
+
+
+# ---------------------------------------------------------------------------
+# parse_bank_file_bulk (multi-month parsing)
+# ---------------------------------------------------------------------------
+
+class TestParseBankFileBulk:
+    def test_returns_all_rows_no_month_filter(self, multi_month_xlsx_bytes: bytes) -> None:
+        """Bulk parser should return rows from ALL months, not filter to a single month."""
+        from budget.importer import parse_bank_file_bulk
+        df, fmt = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Hector")
+        # 3 Jan + 3 Feb + 4 Mar = 10 total
+        assert len(df) == 10
+
+    def test_returns_bulk_format(self, multi_month_xlsx_bytes: bytes) -> None:
+        from budget.importer import parse_bank_file_bulk
+        _, fmt = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Hector")
+        assert fmt == "account"
+
+    def test_month_year_derived_from_date(self, multi_month_xlsx_bytes: bytes) -> None:
+        """Month and year should be extracted from each row's date."""
+        from budget.importer import parse_bank_file_bulk
+        df, _ = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Hector")
+
+        # Check that we have rows from 3 different months
+        months = df[["month", "year"]].drop_duplicates()
+        assert len(months) == 3
+
+        # Verify each month
+        for idx, row in months.iterrows():
+            month, year = row["month"], row["year"]
+            assert year == 2026
+            assert month in [1, 2, 3]
+
+    def test_january_transactions(self, multi_month_xlsx_bytes: bytes) -> None:
+        """Verify January transactions are correctly parsed."""
+        from budget.importer import parse_bank_file_bulk
+        df, _ = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Hector")
+        jan_df = df[df["month"] == 1]
+        assert len(jan_df) == 3
+        assert (jan_df["year"] == 2026).all()
+
+    def test_february_transactions(self, multi_month_xlsx_bytes: bytes) -> None:
+        """Verify February transactions are correctly parsed."""
+        from budget.importer import parse_bank_file_bulk
+        df, _ = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Hector")
+        feb_df = df[df["month"] == 2]
+        assert len(feb_df) == 3
+        assert (feb_df["year"] == 2026).all()
+
+    def test_march_transactions(self, multi_month_xlsx_bytes: bytes) -> None:
+        """Verify March transactions are correctly parsed."""
+        from budget.importer import parse_bank_file_bulk
+        df, _ = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Hector")
+        mar_df = df[df["month"] == 3]
+        assert len(mar_df) == 4
+        assert (mar_df["year"] == 2026).all()
+
+    def test_user_assigned(self, multi_month_xlsx_bytes: bytes) -> None:
+        """User should be assigned to all rows."""
+        from budget.importer import parse_bank_file_bulk
+        df, _ = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Laerke")
+        assert (df["user"] == "Laerke").all()
+
+    def test_category_defaults_to_uncategorized(self, multi_month_xlsx_bytes: bytes) -> None:
+        """All rows should default to uncategorized category."""
+        from budget.importer import parse_bank_file_bulk
+        df, _ = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Hector")
+        assert (df["category"] == "uncategorized").all()
+
+    def test_date_is_iso_string(self, multi_month_xlsx_bytes: bytes) -> None:
+        """Dates should be converted to ISO format strings (YYYY-MM-DD)."""
+        from budget.importer import parse_bank_file_bulk
+        df, _ = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Hector")
+        # Spot check: first January entry
+        jan_df = df[df["month"] == 1]
+        assert jan_df["date"].iloc[0] == "2026-01-05"
+
+    def test_empty_file_returns_empty_df(self) -> None:
+        """Empty file should return empty DataFrame."""
+        from budget.importer import parse_bank_file_bulk
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        for _ in range(10):
+            ws.append([""] * 5)
+        ws.append(["Fecha de operación", "Fecha valor", "Concepto", "Importe",
+                   "Divisa", "Saldo", "Nº mov", "Oficina"])
+        buf = io.BytesIO()
+        wb.save(buf)
+
+        df, _ = parse_bank_file_bulk(buf.getvalue(), "empty.xlsx", "Hector")
+        assert len(df) == 0
+
+    def test_dedup_drops_duplicate_within_file(self) -> None:
+        """Duplicates within the file should be dropped."""
+        from budget.importer import parse_bank_file_bulk
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        for _ in range(10):
+            ws.append([""] * 5)
+        ws.append(["Fecha de operación", "Fecha valor", "Concepto", "Importe",
+                   "Divisa", "Saldo", "Nº mov", "Oficina"])
+        # Same row twice
+        for _ in range(2):
+            ws.append(["05/03/2026", "05/03/2026", "Duplicate", "-10,00", "EUR",
+                       "990,00", "1", "001"])
+        buf = io.BytesIO()
+        wb.save(buf)
+
+        df, _ = parse_bank_file_bulk(buf.getvalue(), "dup.xlsx", "Hector")
+        assert len(df) == 1
+
+    def test_cross_year_file(self) -> None:
+        """File spanning multiple years should be parsed correctly."""
+        from budget.importer import parse_bank_file_bulk
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        for _ in range(10):
+            ws.append([""] * 5)
+        ws.append(["Fecha de operación", "Fecha valor", "Concepto", "Importe",
+                   "Divisa", "Saldo", "Nº mov", "Oficina"])
+        # December 2025 + January 2026
+        ws.append(["15/12/2025", "15/12/2025", "Dec transaction", "-50,00", "EUR", "1000,00", "1", "001"])
+        ws.append(["05/01/2026", "05/01/2026", "Jan transaction", "-30,00", "EUR", "970,00", "2", "001"])
+        buf = io.BytesIO()
+        wb.save(buf)
+
+        df, _ = parse_bank_file_bulk(buf.getvalue(), "cross_year.xlsx", "Hector")
+        assert len(df) == 2
+
+        # Check years
+        years = sorted(df["year"].unique())
+        assert years == [2025, 2026]
+
+        # Check months
+        dec_row = df[df["year"] == 2025]
+        jan_row = df[df["year"] == 2026]
+        assert dec_row["month"].iloc[0] == 12
+        assert jan_row["month"].iloc[0] == 1
+
+    def test_unrecognised_format_raises_error(self) -> None:
+        """Unrecognised file format should raise ValueError."""
+        from budget.importer import parse_bank_file_bulk
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        for _ in range(10):
+            ws.append([""] * 5)
+        ws.append(["Col1", "Col2", "Col3", "Col4"])  # Wrong columns
+        buf = io.BytesIO()
+        wb.save(buf)
+
+        with pytest.raises(ValueError, match="Unrecognised"):
+            parse_bank_file_bulk(buf.getvalue(), "bad.xlsx", "Hector")

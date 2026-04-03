@@ -170,6 +170,50 @@ def parse_bank_file(
     return df, fmt
 
 
+def parse_bank_file_bulk(
+    file_bytes: bytes,
+    filename: str,
+    user: str,
+) -> tuple[pd.DataFrame, str]:
+    """
+    Parse a bank XLS/XLSX file and return a normalised DataFrame containing
+    transactions for ALL months in the file (no month/year filtering).
+    Month and year are derived from each row's date.
+
+    Returned DataFrame columns:
+        user, month, year, date (str ISO), description, amount, source, category
+    """
+    raw = load_xls(file_bytes, filename)
+
+    # Drop fully empty rows/cols
+    raw = raw.dropna(how="all").reset_index(drop=True)
+
+    fmt = detect_format(raw)
+
+    if fmt == "account":
+        df = parse_account_format(raw)
+    else:
+        df = parse_card_format(raw)
+
+    # Derive month and year from date (no filtering)
+    df["month"] = df["date"].apply(lambda d: d.month if d else None)
+    df["year"] = df["date"].apply(lambda d: d.year if d else None)
+
+    df["user"] = user
+    df["category"] = "uncategorized"
+    df["date"] = df["date"].apply(lambda d: d.isoformat() if d else None)
+    df["description"] = df["description"].fillna("").str.strip()
+
+    # Keep only rows with actual amounts
+    df = df[df["amount"].notna()].copy()
+
+    # Deduplicate within the file itself before sending to Supabase.
+    # The unique constraint is (user, date, description, amount, source) — same as DB.
+    df = df.drop_duplicates(subset=["user", "date", "description", "amount", "source"])
+
+    return df, fmt
+
+
 def df_to_records(df: pd.DataFrame) -> list[dict]:
     """Convert DataFrame to list of dicts for Supabase upsert."""
     cols = ["user", "month", "year", "date", "description", "amount", "source", "category"]
