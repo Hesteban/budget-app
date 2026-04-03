@@ -38,7 +38,8 @@ Categories:
   streaming services, restaurants together, household supplies, petrol stations;
   Some examples: PANADERIA, BM (supermarket), DIA (supermarket), ALDI (supermarket), E.S BECERRIl (meaming Estacion de servicio gasolina), FCIA (meaning Farmacia) )
 - 'personal': Expense for one person only (clothing, personal health, bank operations
-  solo transport, individual hobbies, etc.)
+  solo transport, individual hobbies, etc.
+   Some examples: CARLOS RIGAGORDA (peluquería), HENKO, MONKIMUN, TELFISA GLOBAL)
 - 'covered': This is not possible to categorize by an LLM , so just not use it
 - 'uncategorized': Genuinely unclear from the description alone; insufficient
   information to decide.
