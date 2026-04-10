@@ -135,24 +135,33 @@ with col1:
     ):
         from budget.ai_categorizer import categorize_transaction, CONFIDENCE_THRESHOLD  # noqa: PLC0415
         updates = []
-        skipped = 0
+        categorized_results = []
+        skipped_results = []
         placeholder = st.empty()
         total = len(uncategorized_rows)
         for i, tx in enumerate(uncategorized_rows, start=1):
             placeholder.caption(f"Categorizing {i}/{total}: {tx['description']}…")
             result = categorize_transaction(tx["description"], tx["amount"], tx["source"])
+            entry = {
+                "description": tx["description"],
+                "amount": tx["amount"],
+                "category": result.category,
+                "confidence": result.confidence,
+                "reasoning": result.reasoning,
+            }
             if result.confidence >= CONFIDENCE_THRESHOLD:
                 updates.append({"id": tx["id"], "category": result.category})
+                categorized_results.append(entry)
             else:
-                skipped += 1
+                skipped_results.append(entry)
         placeholder.empty()
         if updates:
             db.bulk_update_categories(updates)
             calculator.calculate_settlement(month, year)
-        st.success(
-            f"✅ {len(updates)} auto-categorized, "
-            f"{skipped} skipped (low confidence — review manually)."
-        )
+        st.session_state["categorization_results"] = {
+            "categorized": categorized_results,
+            "skipped": skipped_results,
+        }
         st.rerun()
 
 with col2:
@@ -166,3 +175,55 @@ with col2:
         f"**Personal:** €{abs(personal_df['amount'].sum()):.2f} &nbsp;|&nbsp; "
         f"**Uncategorised:** {len(uncategorized_df)}"
     )
+
+# --- Autocategorization summary (session-only) ---
+if "categorization_results" in st.session_state:
+    results = st.session_state["categorization_results"]
+    categorized = results["categorized"]
+    skipped = results["skipped"]
+
+    with st.expander(
+        f"🤖 Auto-categorization Summary — "
+        f"{len(categorized)} categorized, {len(skipped)} skipped",
+        expanded=True,
+    ):
+        if categorized:
+            st.subheader("✅ Categorized")
+            cat_df = pd.DataFrame(categorized)
+            cat_df["confidence"] = cat_df["confidence"].apply(lambda x: f"{x:.0%}")
+            cat_df["amount"] = cat_df["amount"].apply(lambda x: f"€{abs(x):.2f}")
+            st.dataframe(
+                cat_df[["description", "amount", "category", "confidence", "reasoning"]],
+                column_config={
+                    "description": "Description",
+                    "amount": "Amount",
+                    "category": "Category",
+                    "confidence": "Confidence",
+                    "reasoning": "Reasoning",
+                },
+                hide_index=True,
+                use_container_width=True,
+            )
+        else:
+            st.info("No transactions were auto-categorized.")
+
+        if skipped:
+            st.subheader("⏭️ Skipped (low confidence)")
+            skip_df = pd.DataFrame(skipped)
+            skip_df["confidence"] = skip_df["confidence"].apply(lambda x: f"{x:.0%}")
+            skip_df["amount"] = skip_df["amount"].apply(lambda x: f"€{abs(x):.2f}")
+            st.dataframe(
+                skip_df[["description", "amount", "confidence", "reasoning"]],
+                column_config={
+                    "description": "Description",
+                    "amount": "Amount",
+                    "confidence": "Confidence",
+                    "reasoning": "Reasoning",
+                },
+                hide_index=True,
+                use_container_width=True,
+            )
+
+        if st.button("Dismiss summary"):
+            del st.session_state["categorization_results"]
+            st.rerun()

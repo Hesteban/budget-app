@@ -52,6 +52,8 @@ _EXAMPLES: list[dict] = [
     # common — pharmacy
     {"description": "FCIA. MAYOR 12", "amount": -12.80, "source": "card",
      "category": "common", "confidence": 0.90, "reasoning": "Pharmacy purchase, typically a shared household expense."},
+    {"description": "FARMA.JOSE", "amount": -12.80, "source": "card",
+     "category": "common", "confidence": 0.90, "reasoning": "Pharmacy purchase, typically a shared household expense."},
     # common — shared household expense
     {"description": "CANAL DE", "amount": -55.00, "source": "account",
      "category": "common", "confidence": 0.98, "reasoning": "Water utility bill, a shared household expense."},
@@ -61,20 +63,31 @@ _EXAMPLES: list[dict] = [
      "category": "common", "confidence": 0.95, "reasoning": "Car taxes payment, shared household expense."},
      {"description": "PEPE ENERGY", "amount": -60, "source": "account",
      "category": "common", "confidence": 0.95, "reasoning": "Electricity bill, a shared household expense."},
+     {"description": "AMAZON", "amount": -30, "source": "card",
+     "category": "common", "confidence": 0.95, "reasoning": "Amazon buy , shared houshold expense."},
+     {"description": "WWW.AMAZON*ZQ7HH4QE5", "amount": -19, "source": "card",
+     "category": "common", "confidence": 0.95, "reasoning": "Amazon buy , shared houshold expense."},
+     {"description": "WWW.AMAZON*q3432", "amount": -200, "source": "card",
+     "category": "common", "confidence": 0.95, "reasoning": "Amazon buy , shared houshold expense."},
     # personal — haircut / beauty
     {"description": "CARLOS RIGAGORDA", "amount": -35.00, "source": "card",
      "category": "personal", "confidence": 0.95, "reasoning": "Hairdresser, personal grooming expense."},
-    # personal — clothing / individual shops
+    # personal — individual shops
     {"description": "HENKO", "amount": -49.95, "source": "card",
      "category": "personal", "confidence": 0.90, "reasoning": "Clothing/personal goods store."},
+     {"description": "APPLE", "amount": -19, "source": "card",
+     "category": "personal", "confidence": 0.90, "reasoning": "Likely personal purchase of electronics or apps."},
     # personal — bank / finance operations
     {"description": "TELFISA GLOBAL", "amount": -150.00, "source": "account",
      "category": "personal", "confidence": 0.88, "reasoning": "Individual financial operation."},
     {"description": "MONKIMUN", "amount": -29.00, "source": "card",
      "category": "personal", "confidence": 0.88, "reasoning": "Individual purchase, personal expense."},
-    # uncategorized
     {"description": "TRANSFERENCIA", "amount": -200.00, "source": "account",
-     "category": "uncategorized", "confidence": 0.60, "reasoning": "Generic bank transfer with no context to determine purpose."},
+     "category": "personal", "confidence": 0.90, "reasoning": "Generic bank transfer with no context to determine purpose."},
+     {"description": "BANCO SANTANDER", "amount": -200.00, "source": "account",
+     "category": "personal", "confidence": 0.90, "reasoning": "Bank witdhdrawal with no context, likely personal."},
+     {"description": "BANCO SANTANDER", "amount": -200.00, "source": "card",
+     "category": "personal", "confidence": 0.90, "reasoning": "Bank witdhdrawal with no context, likely personal."},
 ]
 
 
@@ -117,6 +130,13 @@ Categories:
 You will receive: description (bank transaction text), amount in euros (negative means
 debit/spending, positive means credit/income), and source ('card' or 'account').
 
+**Important** Bank transaction text is sometimes messy and noisy *try to ignore alphanumerical codes*: 
+WWW.AMAZON*ZQ7HH4QE5 means AMAZON should be common
+AMZN Mktp ES*OM71644T5 also means AMAZON should be common
+CANAL DE I504eqw12222 means CANAL DE ISABEL II (water supply) should be common
+VOLKSWAGEN732417 00 means VOLKSWAGEN should be common
+FCIA MARTIN means FARMACIA should be common
+
 Respond with the most likely category, a confidence score from 0.0 to 1.0, and a brief
 one-sentence reasoning.
 """,
@@ -144,7 +164,7 @@ if __name__ == "__main__":
     load_dotenv(override=True)
     # Example usage
     test_transaction = {
-        "description": "MUTUA MADR495565 01010155",
+        "description": "WWW.AMAZON*ZQ7HH4QE5",
         "amount": -180,
         "source": "card",
     }
