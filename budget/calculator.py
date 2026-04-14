@@ -56,28 +56,28 @@ def calculate_settlement(month: int, year: int) -> dict:
     fixed_expenses = db.get_fixed_expenses()
 
     # --- Common transactions per user ---
-    laerke_common = sum(
-        abs(t["amount"])
-        for t in transactions
-        if t["user"] == "Laerke" and t["category"] == "common"
-    )
-    hector_common = sum(
-        abs(t["amount"])
-        for t in transactions
-        if t["user"] == "Hector" and t["category"] == "common"
-    )
+    laerke_common_tx = [
+        t for t in transactions
+        if t["user"] == "Laerke" and t["category"] == "common" and t["amount"] < 0
+    ]
+    hector_common_tx = [
+        t for t in transactions
+        if t["user"] == "Hector" and t["category"] == "common" and t["amount"] < 0
+    ]
+    laerke_common = sum(abs(t["amount"]) for t in laerke_common_tx)
+    hector_common = sum(abs(t["amount"]) for t in hector_common_tx)
 
     # --- Personal transactions per user ---
-    laerke_personal = sum(
-        abs(t["amount"])
-        for t in transactions
-        if t["user"] == "Laerke" and t["category"] == "personal"
-    )
-    hector_personal = sum(
-        abs(t["amount"])
-        for t in transactions
-        if t["user"] == "Hector" and t["category"] == "personal"
-    )
+    laerke_personal_tx = [
+        t for t in transactions
+        if t["user"] == "Laerke" and t["category"] == "personal" and t["amount"] < 0
+    ]
+    hector_personal_tx = [
+        t for t in transactions
+        if t["user"] == "Hector" and t["category"] == "personal" and t["amount"] < 0
+    ]
+    laerke_personal = sum(abs(t["amount"]) for t in laerke_personal_tx)
+    hector_personal = sum(abs(t["amount"]) for t in hector_personal_tx)
 
     # --- Active fixed expenses per user ---
     fixed_laerke = sum(

@@ -29,7 +29,7 @@ def _run_categorization(transactions: list[dict], mock_results: list[CategoryRes
             "reasoning": result.reasoning,
         }
         if result.confidence >= CONFIDENCE_THRESHOLD:
-            updates.append({"id": tx["id"], "category": result.category})
+            updates.append({"id": tx["id"], "category": result.category, "reasoning": result.reasoning})
             categorized_results.append(entry)
         else:
             skipped_results.append(entry)

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     source      TEXT NOT NULL CHECK (source IN ('account', 'card')),
     category    TEXT NOT NULL DEFAULT 'uncategorized'
                     CHECK (category IN ('personal', 'common', 'uncategorized', 'covered')),
+    reasoning   TEXT,
     created_at  TIMESTAMPTZ DEFAULT now(),
     UNIQUE ("user", date, description, amount, source)
 );
@@ -51,6 +52,18 @@ CREATE TABLE IF NOT EXISTS monthly_summary (
 );
 
 -- ============================================================
+-- MONTHLY REPORTS (AI-generated spending summary narratives)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS monthly_reports (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    month        INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
+    year         INTEGER NOT NULL,
+    content      TEXT    NOT NULL,
+    generated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (month, year)
+);
+
+-- ============================================================
 -- Row-Level Security (optional but recommended)
 -- Enable if you want to restrict access to authenticated users.
 -- For simplicity with the shared-password approach, leave RLS off
@@ -59,3 +72,4 @@ CREATE TABLE IF NOT EXISTS monthly_summary (
 -- ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE fixed_expenses ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE monthly_summary ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE monthly_reports ENABLE ROW LEVEL SECURITY;

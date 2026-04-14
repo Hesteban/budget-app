@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from budget import db, calculator
+from budget import ai_summarizer
 
 if not st.session_state.get("authenticated"):
     st.warning("Please log in from the Home page.")
@@ -150,7 +151,7 @@ with col1:
                 "reasoning": result.reasoning,
             }
             if result.confidence >= CONFIDENCE_THRESHOLD:
-                updates.append({"id": tx["id"], "category": result.category})
+                updates.append({"id": tx["id"], "category": result.category, "reasoning": result.reasoning})
                 categorized_results.append(entry)
             else:
                 skipped_results.append(entry)
@@ -227,3 +228,35 @@ if "categorization_results" in st.session_state:
         if st.button("Dismiss summary"):
             del st.session_state["categorization_results"]
             st.rerun()
+
+
+# --- Monthly Summary section ---
+st.divider()
+st.subheader("📝 Monthly Summary")
+
+# On page load: hydrate summary from DB into session state
+summary_key = f"monthly_summary_{month}_{year}"
+if summary_key not in st.session_state:
+    st.session_state[summary_key] = db.get_monthly_report(month, year)  # str | None
+
+existing_report = st.session_state[summary_key]
+
+if existing_report:
+    # Show report + regenerate button
+    with st.expander("View report", expanded=True):
+        st.markdown(existing_report)
+    if st.button("🔄 Regenerate summary"):
+        with st.spinner("Generating summary…"):
+            content = ai_summarizer.generate_monthly_summary(month, year)
+        db.upsert_monthly_report(month, year, content)
+        st.session_state[summary_key] = content
+        st.rerun()
+else:
+    # No report yet
+    st.caption("No summary generated yet for this month.")
+    if st.button("🤖 Generate Monthly Summary"):
+        with st.spinner("Generating summary…"):
+            content = ai_summarizer.generate_monthly_summary(month, year)
+        db.upsert_monthly_report(month, year, content)
+        st.session_state[summary_key] = content
+        st.rerun()
