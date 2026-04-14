@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from budget.ai_categorizer import CategoryResult, CONFIDENCE_THRESHOLD
+from budget.agents.ai_categorizer import CategoryResult, CONFIDENCE_THRESHOLD
 
 
 def _run_categorization(transactions: list[dict], mock_results: list[CategoryResult]):
