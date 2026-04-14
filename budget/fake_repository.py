@@ -15,6 +15,7 @@ class FakeRepository:
         self._transactions: list[dict] = []
         self._fixed_expenses: list[dict] = []
         self._monthly_summaries: list[dict] = []
+        self._reports: dict[tuple[int, int], str] = {}
 
     # Transactions
     def get_transactions(
@@ -50,7 +51,12 @@ class FakeRepository:
 
     def bulk_update_categories(self, updates: list[dict]) -> None:
         for item in updates:
-            self.update_transaction_category(item["id"], item["category"])
+            for t in self._transactions:
+                if t["id"] == item["id"]:
+                    t["category"] = item["category"]
+                    if "reasoning" in item:
+                        t["reasoning"] = item["reasoning"][:300]
+                    break
 
     def delete_transactions(self, month: int, year: int, user: str) -> None:
         self._transactions = [
@@ -127,3 +133,10 @@ class FakeRepository:
             t["month"] == month and t["year"] == year and t["category"] == "uncategorized"
             for t in self._transactions
         )
+
+    # Monthly Reports
+    def get_monthly_report(self, month: int, year: int) -> str | None:
+        return self._reports.get((month, year))
+
+    def upsert_monthly_report(self, month: int, year: int, content: str) -> None:
+        self._reports[(month, year)] = content

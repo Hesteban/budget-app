@@ -66,8 +66,11 @@ class SupabaseRepository:
 
     def bulk_update_categories(self, updates: list[dict]) -> None:
         for item in updates:
+            payload = {"category": item["category"]}
+            if "reasoning" in item:
+                payload["reasoning"] = item["reasoning"][:300]
             self._client().table("transactions").update(
-                {"category": item["category"]}
+                payload
             ).eq("id", item["id"]).execute()
 
     def delete_transactions(self, month: int, year: int, user: str) -> None:
@@ -160,6 +163,31 @@ class SupabaseRepository:
         )
         return len(rows) > 0
 
+    # --- Monthly Reports ---
+
+    def get_monthly_report(self, month: int, year: int) -> str | None:
+        result = (
+            self._client().table("monthly_reports")
+            .select("content")
+            .eq("month", month)
+            .eq("year", year)
+            .maybe_single()
+            .execute()
+        )
+        if result is None:
+            return None
+
+        if not result.data:
+            return None
+
+        return result.data.get("content")
+
+    def upsert_monthly_report(self, month: int, year: int, content: str) -> None:
+        self._client().table("monthly_reports").upsert(
+            {"month": month, "year": year, "content": content},
+            on_conflict="month,year",
+        ).execute()
+
 
 
 # Repository factory
@@ -251,3 +279,11 @@ def months_with_data() -> list[dict]:
 
 def has_uncategorized(month: int, year: int) -> bool:
     return get_repo().has_uncategorized(month, year)
+
+
+def get_monthly_report(month: int, year: int) -> str | None:
+    return get_repo().get_monthly_report(month, year)
+
+
+def upsert_monthly_report(month: int, year: int, content: str) -> None:
+    get_repo().upsert_monthly_report(month, year, content)

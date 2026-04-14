@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from budget.ai_categorizer import CategoryResult, CONFIDENCE_THRESHOLD
+from budget.agents.ai_categorizer import CategoryResult, CONFIDENCE_THRESHOLD
 
 
 def _run_categorization(transactions: list[dict], mock_results: list[CategoryResult]):
@@ -29,7 +29,7 @@ def _run_categorization(transactions: list[dict], mock_results: list[CategoryRes
             "reasoning": result.reasoning,
         }
         if result.confidence >= CONFIDENCE_THRESHOLD:
-            updates.append({"id": tx["id"], "category": result.category})
+            updates.append({"id": tx["id"], "category": result.category, "reasoning": result.reasoning})
             categorized_results.append(entry)
         else:
             skipped_results.append(entry)
@@ -45,7 +45,7 @@ class TestCategorizationResultCollection:
         updates, categorized, skipped = _run_categorization(txs, results)
 
         assert len(updates) == 1
-        assert updates[0] == {"id": "1", "category": "common"}
+        assert updates[0] == {"id": "1", "category": "common", "reasoning": 'Supermarket'}
         assert len(categorized) == 1
         assert categorized[0]["reasoning"] == "Supermarket"
         assert len(skipped) == 0
