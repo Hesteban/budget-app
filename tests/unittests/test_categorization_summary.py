@@ -45,7 +45,7 @@ class TestCategorizationResultCollection:
         updates, categorized, skipped = _run_categorization(txs, results)
 
         assert len(updates) == 1
-        assert updates[0] == {"id": "1", "category": "common"}
+        assert updates[0] == {"id": "1", "category": "common", "reasoning": 'Supermarket'}
         assert len(categorized) == 1
         assert categorized[0]["reasoning"] == "Supermarket"
         assert len(skipped) == 0
