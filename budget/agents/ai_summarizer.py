@@ -22,9 +22,9 @@ of the raw bank transaction text — use it directly in the report without furth
 
 The report must include:
 1. **Overview** — total common spend, total personal spend per person
-3. **Laerke's personal spending** — brief breakdown.
-4. **Hector's personal spending** — brief breakdown.
-5. **Key observations** — 5 actionable or notable insights (e.g. unusually high category, trends).
+2. **Laerke's personal spending** — brief breakdown.
+3. **Hector's personal spending** — brief breakdown.
+4. **Key observations** — 5 actionable or notable insights (e.g. unusually high category, trends).
 
 Keep the tone friendly and factual. Use € for amounts.
 """
