@@ -21,11 +21,10 @@ The 'label' column in the transaction tables is already a human-readable interpr
 of the raw bank transaction text — use it directly in the report without further interpretation.
 
 The report must include:
-1. **Overview** — total common spend, total personal spend per person, and fixed expenses.
-2. **Common expenses highlights** — top 5 largest common transactions with label and amount.
-3. **Laerke's personal spending** — brief breakdown.
-4. **Hector's personal spending** — brief breakdown.
-5. **Key observations** — 2-3 actionable or notable insights (e.g. unusually high category, trend).
+1. **Overview** — total common spend, total personal spend per person
+2. **Laerke's personal spending** — brief breakdown.
+3. **Hector's personal spending** — brief breakdown.
+4. **Key observations** — 5 actionable or notable insights (e.g. unusually high category, trends).
 
 Keep the tone friendly and factual. Use € for amounts.
 """
@@ -47,11 +46,10 @@ def generate_monthly_summary(month: int, year: int) -> str:
     """
     Generate a monthly spending summary narrative for the given month/year.
     
-    Fetches all transactions and fixed expenses, structures them for the LLM,
+    Fetches all transactions and structures them for the LLM,
     and returns a markdown-formatted spending narrative.
     """
     transactions = db.get_transactions(month, year)
-    fixed_expenses = db.get_fixed_expenses()
 
     # Build structured data block for the prompt
     common_tx = [t for t in transactions if t["category"] == "common" and t["amount"] < 0]
@@ -84,9 +82,6 @@ def generate_monthly_summary(month: int, year: int) -> str:
 - Laerke personal: €{laerke_total:.2f}
 - Hector personal: €{hector_total:.2f}
 
-### Fixed Expenses
-{_format_list(fixed_expenses, fields=["user", "name", "amount"])}
-
 ### Top Common Transactions
 {_format_list(top_common, fields=["date", "label", "amount"])}
 
@@ -112,3 +107,11 @@ def _format_list(items: list[dict], fields: list[str]) -> str:
         " | ".join(str(item.get(f, "")) for f in fields) for item in items
     )
     return f"{header}\n{rows}"
+
+
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+    # Example usage — generate March 2026 summary from test data
+    result = generate_monthly_summary(month=3, year=2026)
+    print(result)
