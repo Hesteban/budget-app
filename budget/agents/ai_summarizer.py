@@ -107,3 +107,11 @@ def _format_list(items: list[dict], fields: list[str]) -> str:
         " | ".join(str(item.get(f, "")) for f in fields) for item in items
     )
     return f"{header}\n{rows}"
+
+
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+    # Example usage — generate March 2026 summary from test data
+    result = generate_monthly_summary(month=3, year=2026)
+    print(result)
