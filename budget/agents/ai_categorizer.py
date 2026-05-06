@@ -95,6 +95,8 @@ _EXAMPLES: list[dict] = [
      "category": "personal", "confidence": 0.90, "reasoning": "Bank witdhdrawal with no context, likely personal."},
     {"description": "REC.MCARD", "amount": -200.00, "source": "account",
      "category": "personal", "confidence": 0.95, "reasoning": "Bank credit card adjustment with account."},
+    {"description": "PRESTAMO Y SEGUROS", "amount": -500.00, "source": "account",
+     "category": "personal", "confidence": 0.95, "reasoning": "Individual financial operation."},
 ]
 
 
