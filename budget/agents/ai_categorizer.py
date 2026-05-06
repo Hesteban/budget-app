@@ -51,7 +51,7 @@ _EXAMPLES: list[dict] = [
      "category": "common", "confidence": 0.94, "reasoning": "Fuel purchase treated as shared expense."},
     {"description": "IMP VEHICULO", "amount": -70, "source": "account",
      "category": "common", "confidence": 0.95, "reasoning": "Car taxes payment, shared household expense."},
-    {"description": "TALLER", "amount": -300, "source": "cad",
+    {"description": "TALLER", "amount": -300, "source": "card",
      "category": "common", "confidence": 0.95, "reasoning": "Car repair expense, shared expense."},
     {"description": "MUTUA", "amount": -190, "source": "account",
      "category": "common", "confidence": 0.95, "reasoning": "Car insurance payment, shared household expense."},
