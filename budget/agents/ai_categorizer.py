@@ -53,7 +53,7 @@ _EXAMPLES: list[dict] = [
      "category": "common", "confidence": 0.95, "reasoning": "Car taxes payment, shared household expense."},
     {"description": "TALLER", "amount": -300, "source": "cad",
      "category": "common", "confidence": 0.95, "reasoning": "Car repair expense, shared expense."},
-     {"description": "MUTUA", "amount": -190, "source": "account",
+    {"description": "MUTUA", "amount": -190, "source": "account",
      "category": "common", "confidence": 0.95, "reasoning": "Car insurance payment, shared household expense."},
     # common — pharmacy
     {"description": "FCIA. MAYOR 12", "amount": -12.80, "source": "card",
@@ -63,25 +63,24 @@ _EXAMPLES: list[dict] = [
     # common — shared household expense
     {"description": "CANAL DE", "amount": -55.00, "source": "account",
      "category": "common", "confidence": 0.98, "reasoning": "Water utility bill, a shared household expense."},
-     {"description": "PEPE ENERGY", "amount": -60, "source": "account",
+    {"description": "PEPE ENERGY", "amount": -60, "source": "account",
      "category": "common", "confidence": 0.95, "reasoning": "Electricity bill, a shared household expense."},
-     {"description": "AMAZON", "amount": -30, "source": "card",
+    {"description": "AMAZON", "amount": -30, "source": "card",
      "category": "common", "confidence": 0.95, "reasoning": "Amazon buy , shared houshold expense."},
-     {"description": "WWW.AMAZON*ZQ7HH4QE5", "amount": -19, "source": "card",
+    {"description": "WWW.AMAZON*ZQ7HH4QE5", "amount": -19, "source": "card",
      "category": "common", "confidence": 0.95, "reasoning": "Amazon buy , shared houshold expense."},
-     {"description": "WWW.AMAZON*q3432", "amount": -200, "source": "card",
+    {"description": "WWW.AMAZON*q3432", "amount": -200, "source": "card",
      "category": "common", "confidence": 0.95, "reasoning": "Amazon buy , shared houshold expense."},
     # common — leisure time
     {"description": "CAMPING", "amount": -12.80, "source": "card",
      "category": "common", "confidence": 0.93, "reasoning": "Camping fee likely for common leisure."},
-
     # personal — haircut / beauty
     {"description": "CARLOS RIGAGORDA", "amount": -35.00, "source": "card",
      "category": "personal", "confidence": 0.95, "reasoning": "Hairdresser, personal grooming expense."},
     # personal — individual shops
     {"description": "HENKO", "amount": -49.95, "source": "card",
      "category": "personal", "confidence": 0.90, "reasoning": "Clothing/personal goods store."},
-     {"description": "APPLE", "amount": -19, "source": "card",
+    {"description": "APPLE", "amount": -19, "source": "card",
      "category": "personal", "confidence": 0.90, "reasoning": "Likely personal purchase of electronics or apps."},
     # personal — bank / finance operations
     {"description": "TELFISA GLOBAL", "amount": -1500.00, "source": "account",
@@ -90,11 +89,11 @@ _EXAMPLES: list[dict] = [
      "category": "personal", "confidence": 0.93, "reasoning": "Individual financial operation."},
     {"description": "TRANSFERENCIA", "amount": -200.00, "source": "account",
      "category": "personal", "confidence": 0.90, "reasoning": "Generic bank transfer with no context to determine purpose."},
-     {"description": "BANCO SANTANDER", "amount": -200.00, "source": "account",
+    {"description": "BANCO SANTANDER", "amount": -200.00, "source": "account",
      "category": "personal", "confidence": 0.90, "reasoning": "Bank witdhdrawal with no context, likely personal."},
-     {"description": "BANCO SANTANDER", "amount": -200.00, "source": "card",
+    {"description": "BANCO SANTANDER", "amount": -200.00, "source": "card",
      "category": "personal", "confidence": 0.90, "reasoning": "Bank witdhdrawal with no context, likely personal."},
-     {"description": "REC.MCARD", "amount": -200.00, "source": "account",
+    {"description": "REC.MCARD", "amount": -200.00, "source": "account",
      "category": "personal", "confidence": 0.95, "reasoning": "Bank credit card adjustment with account."},
 ]
 
