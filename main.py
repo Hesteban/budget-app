@@ -8,7 +8,7 @@ Flow:
 """
 import os
 
-from budget import db
+from budget import calculator, db
 import bcrypt
 import streamlit as st
 
@@ -58,6 +58,7 @@ if os.getenv("APP_ENV") == "test" and not st.session_state["authenticated"]:
         db.upsert_transactions([make_tx("Laerke", tx) for tx in LAERKE_TRANSACTIONS])
         for fe in FIXED_EXPENSES:
             db.upsert_fixed_expense(fe)
+        calculator.calculate_settlement(MONTH, YEAR)
 
     st.session_state["authenticated"] = True
     st.session_state["active_user"] = "Hector"
