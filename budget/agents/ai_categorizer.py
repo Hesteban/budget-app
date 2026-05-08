@@ -77,6 +77,10 @@ _EXAMPLES: list[dict] = [
      "category": "common", "confidence": 0.95, "reasoning": "Oil for house heating , shared houshold expense."},
     {"description": "REQUE OIL", "amount": -500, "source": "card",
      "category": "common", "confidence": 0.95, "reasoning": "Oil for house heating , shared houshold expense."},
+    {"description": "CASA DE NIÑOS", "amount": -106, "source": "account",
+     "category": "common", "confidence": 0.97, "reasoning": "Kindergarden bill, shared houshold expense."},
+    {"description": "CASA DE NI307577 S0000002", "amount": -106, "source": "account",
+     "category": "common", "confidence": 0.95, "reasoning": "Kindergarden bill, shared houshold expense."}, 
     # common — leisure time
     {"description": "CAMPING", "amount": -12.80, "source": "card",
      "category": "common", "confidence": 0.93, "reasoning": "Camping fee likely for common leisure."},
