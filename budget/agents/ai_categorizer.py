@@ -41,6 +41,8 @@ _EXAMPLES: list[dict] = [
      "category": "common", "confidence": 0.96, "reasoning": "Supermarket purchase shared by the household."},
     {"description": "MERCADONA", "amount": -87.30, "source": "card",
      "category": "common", "confidence": 0.97, "reasoning": "Supermarket purchase shared by the household."},
+    {"description": "BYB", "amount": -6.30, "source": "card",
+     "category": "common", "confidence": 0.97, "reasoning": "Supermarket purchase shared by the household."},
     # common — bakeries / food
     {"description": "PANADERIA", "amount": -5.60, "source": "card",
      "category": "common", "confidence": 0.92, "reasoning": "Bakery purchase likely shared."},
