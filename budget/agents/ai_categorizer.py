@@ -71,6 +71,10 @@ _EXAMPLES: list[dict] = [
      "category": "common", "confidence": 0.95, "reasoning": "Amazon buy , shared houshold expense."},
     {"description": "WWW.AMAZON*q3432", "amount": -200, "source": "card",
      "category": "common", "confidence": 0.95, "reasoning": "Amazon buy , shared houshold expense."},
+    {"description": "REQUES E HIJOS SL", "amount": -300, "source": "card",
+     "category": "common", "confidence": 0.95, "reasoning": "Oil for house heating , shared houshold expense."},
+    {"description": "REQUE OIL", "amount": -500, "source": "card",
+     "category": "common", "confidence": 0.95, "reasoning": "Oil for house heating , shared houshold expense."},
     # common — leisure time
     {"description": "CAMPING", "amount": -12.80, "source": "card",
      "category": "common", "confidence": 0.93, "reasoning": "Camping fee likely for common leisure."},
