@@ -81,7 +81,7 @@ def summary_page(page: Page, base_url: str) -> Page:
     expect(page.get_by_text("Budget App 💶").first).to_be_visible(timeout=15_000)
 
     # Click the Transactions nav link in the sidebar
-    page.get_by_role("link", name="Summary").click()
+    page.get_by_role("link", name="Summary", exact=True).click()
 
     expect(page.get_by_role("heading", name="📊 Monthly Summary", exact=False)).to_be_visible(
         timeout=15_000
