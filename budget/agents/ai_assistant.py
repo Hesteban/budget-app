@@ -130,4 +130,4 @@ def stream_response(messages: list[dict]) -> Generator[str, None, None]:
                 raise item
             yield item
     finally:
-        thread.join()
+        thread.join(timeout=2.0)

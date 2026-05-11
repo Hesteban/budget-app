@@ -98,3 +98,24 @@ def summary_page(page: Page, base_url: str) -> Page:
     ).to_be_visible(timeout=15_000)
 
     return page
+
+@pytest.fixture()
+def assistant_page(page: Page, base_url: str) -> Page:
+    """
+    Navigate to the home page, wait for the auto-login rerun to settle,
+    then click the '💬 Assistant' sidebar link.
+    """
+    page.goto(base_url)
+
+    # Wait for the auto-login rerun to complete — sidebar title is the anchor
+    expect(page.get_by_text("Budget App 💶").first).to_be_visible(timeout=15_000)
+
+    # Click the Transactions nav link in the sidebar
+    page.get_by_role("link", name="Assistant").click()
+
+    # Wait for the page heading to confirm navigation succeeded
+    expect(page.get_by_role("heading", name="💬 Budget Assistant", exact=False)).to_be_visible(
+        timeout=15_000
+    )
+
+    return page
