@@ -80,4 +80,5 @@ jobs:
         env:
           APP_ENV: test
           BASE_URL: http://localhost:8501
+          OPENAI_API_KEY: ${{ secrets.OPENAI }}
         run: pytest tests/e2e/ -v --tb=short -m e2e
