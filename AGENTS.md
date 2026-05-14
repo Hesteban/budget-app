@@ -88,7 +88,7 @@ Unique constraints: transactions on `(user, date, description, amount, source)`,
 ```toml
 [supabase]
 url = "..."
-key = "..."
+anon_key = "..."
 
 [auth]
 password_hash = "<bcrypt-hash>"

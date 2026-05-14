@@ -43,7 +43,7 @@ Create `.streamlit/secrets.toml`:
 ```toml
 [supabase]
 url = "https://your-project.supabase.co"
-key = "your-anon-key"
+anon_key = "your-anon-key"
 
 [app]
 password = "shared-password-hash"
