@@ -64,12 +64,67 @@ CREATE TABLE IF NOT EXISTS monthly_reports (
 );
 
 -- ============================================================
--- Row-Level Security (optional but recommended)
--- Enable if you want to restrict access to authenticated users.
--- For simplicity with the shared-password approach, leave RLS off
--- and secure via Streamlit auth instead.
+-- Row-Level Security
+-- Enable RLS and create policies for data access control.
 -- ============================================================
--- ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE fixed_expenses ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE monthly_summary ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE monthly_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fixed_expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE monthly_summary ENABLE ROW LEVEL SECURITY;
+ALTER TABLE monthly_reports ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for anon (public API access)
+CREATE POLICY "transactions: read all (anon)" ON public.transactions FOR SELECT TO anon USING (true);
+CREATE POLICY "transactions: insert all (anon)" ON public.transactions FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "transactions: update all (anon)" ON public.transactions FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "transactions: delete all (anon)" ON public.transactions FOR DELETE TO anon USING (true);
+
+CREATE POLICY "fixed_expenses: read all (anon)" ON public.fixed_expenses FOR SELECT TO anon USING (true);
+CREATE POLICY "fixed_expenses: insert all (anon)" ON public.fixed_expenses FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "fixed_expenses: update all (anon)" ON public.fixed_expenses FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "fixed_expenses: delete all (anon)" ON public.fixed_expenses FOR DELETE TO anon USING (true);
+
+CREATE POLICY "monthly_summary: read all (anon)" ON public.monthly_summary FOR SELECT TO anon USING (true);
+CREATE POLICY "monthly_summary: insert all (anon)" ON public.monthly_summary FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "monthly_summary: update all (anon)" ON public.monthly_summary FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "monthly_summary: delete all (anon)" ON public.monthly_summary FOR DELETE TO anon USING (true);
+
+CREATE POLICY "monthly_reports: read all (anon)" ON public.monthly_reports FOR SELECT TO anon USING (true);
+CREATE POLICY "monthly_reports: insert all (anon)" ON public.monthly_reports FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "monthly_reports: update all (anon)" ON public.monthly_reports FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "monthly_reports: delete all (anon)" ON public.monthly_reports FOR DELETE TO anon USING (true);
+
+-- RLS Policies for authenticated (logged-in users)
+CREATE POLICY "transactions: read all (authenticated)" ON public.transactions FOR SELECT TO authenticated USING (true);
+CREATE POLICY "transactions: insert all (authenticated)" ON public.transactions FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "transactions: update all (authenticated)" ON public.transactions FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "transactions: delete all (authenticated)" ON public.transactions FOR DELETE TO authenticated USING (true);
+
+CREATE POLICY "fixed_expenses: read all (authenticated)" ON public.fixed_expenses FOR SELECT TO authenticated USING (true);
+CREATE POLICY "fixed_expenses: insert all (authenticated)" ON public.fixed_expenses FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "fixed_expenses: update all (authenticated)" ON public.fixed_expenses FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "fixed_expenses: delete all (authenticated)" ON public.fixed_expenses FOR DELETE TO authenticated USING (true);
+
+CREATE POLICY "monthly_summary: read all (authenticated)" ON public.monthly_summary FOR SELECT TO authenticated USING (true);
+CREATE POLICY "monthly_summary: insert all (authenticated)" ON public.monthly_summary FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "monthly_summary: update all (authenticated)" ON public.monthly_summary FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "monthly_summary: delete all (authenticated)" ON public.monthly_summary FOR DELETE TO authenticated USING (true);
+
+CREATE POLICY "monthly_reports: read all (authenticated)" ON public.monthly_reports FOR SELECT TO authenticated USING (true);
+CREATE POLICY "monthly_reports: insert all (authenticated)" ON public.monthly_reports FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "monthly_reports: update all (authenticated)" ON public.monthly_reports FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "monthly_reports: delete all (authenticated)" ON public.monthly_reports FOR DELETE TO authenticated USING (true);
+
+-- ============================================================
+-- Explicit Grants for Data API access (required from May 30, 2026)
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON transactions TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON transactions TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON fixed_expenses TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON fixed_expenses TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON monthly_summary TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON monthly_summary TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON monthly_reports TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON monthly_reports TO authenticated;

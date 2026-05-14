@@ -22,7 +22,7 @@ from budget.fake_repository import FakeRepository
 @st.cache_resource
 def _get_supabase_client() -> Client:
     url: str = st.secrets["supabase"]["url"]
-    key: str = st.secrets["supabase"]["key"]
+    key: str = st.secrets["supabase"]["anon_key"]
     return create_client(url, key)
 
 
