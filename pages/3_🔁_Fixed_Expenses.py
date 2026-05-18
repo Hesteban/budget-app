@@ -1,7 +1,9 @@
 """
-Page 3 — Manage recurring fixed expenses per user.
+Page 3 — Manage recurring fixed expenses per user, scoped by year.
 Fixed expenses auto-carry (they live in one table, not per-month).
 """
+import datetime
+
 import streamlit as st
 
 from budget import db
@@ -12,20 +14,37 @@ if not st.session_state.get("authenticated"):
 
 active_user: str = st.session_state.get("active_user", "")
 
-st.title("🔁 Fixed Expenses")
+st.title("Fixed Expenses")
 st.caption(
-    "Recurring monthly expenses per user. "
+    "Recurring monthly expenses per user, organized by year. "
     "These are automatically included in every month's settlement. "
     "Toggle **Active** to include/exclude from calculations."
 )
 
+current_year = datetime.date.today().year
 
-def render_user_section(user: str) -> None:
-    st.subheader(f"{'🟥' if user == 'Laerke' else '🟦'} {user}")
-    expenses = db.get_fixed_expenses(user=user)
+col_year, col_copy = st.columns([1, 2])
+with col_year:
+    selected_year = st.selectbox(
+        "Year",
+        options=list(range(2020, 2101)),
+        index=list(range(2020, 2101)).index(current_year),
+    )
+with col_copy:
+    st.write("")  # vertical align
+    if st.button("Copy from previous year"):
+        prev_year = selected_year - 1
+        db.copy_fixed_expenses_year(prev_year, selected_year)
+        st.success(f"Copied fixed expenses from {prev_year} to {selected_year}.")
+        st.rerun()
+
+
+def render_user_section(user: str, year: int) -> None:
+    st.subheader(f"{'Laerke' if user == 'Laerke' else 'Hector'}")
+    expenses = db.get_fixed_expenses(user=user, year=year)
 
     if not expenses:
-        st.caption("No fixed expenses yet.")
+        st.caption(f"No fixed expenses for {year}.")
     else:
         for exp in expenses:
             col1, col2, col3, col4, col5 = st.columns([3, 1.5, 1, 1, 1])
@@ -53,7 +72,7 @@ def render_user_section(user: str) -> None:
                     key=f"active_{exp['id']}",
                 )
             with col4:
-                if st.button("💾", key=f"save_{exp['id']}", help="Save changes"):
+                if st.button("Save", key=f"save_{exp['id']}"):
                     db.upsert_fixed_expense(
                         {
                             "id": exp["id"],
@@ -61,21 +80,21 @@ def render_user_section(user: str) -> None:
                             "name": new_name,
                             "amount": new_amount,
                             "active": new_active,
+                            "year": year,
                         }
                     )
                     st.success("Saved.")
                     st.rerun()
             with col5:
-                if st.button("🗑️", key=f"del_{exp['id']}", help="Delete"):
+                if st.button("Delete", key=f"del_{exp['id']}"):
                     db.delete_fixed_expense(exp["id"])
                     st.rerun()
 
-    # --- Add new ---
-    with st.expander(f"➕ Add fixed expense for {user}"):
-        with st.form(key=f"add_form_{user}", clear_on_submit=True):
-            new_name = st.text_input("Name", placeholder="e.g. Prestamo, Spotify…")
+    with st.expander(f"Add fixed expense for {user}"):
+        with st.form(key=f"add_form_{user}_{year}", clear_on_submit=True):
+            new_name = st.text_input("Name", placeholder="e.g. Prestamo, Spotify")
             new_amount = st.number_input(
-                "Monthly amount (€)", min_value=0.0, step=0.01, format="%.2f"
+                "Monthly amount", min_value=0.0, step=0.01, format="%.2f"
             )
             submitted = st.form_submit_button("Add", type="primary")
             if submitted and new_name:
@@ -85,6 +104,7 @@ def render_user_section(user: str) -> None:
                         "name": new_name,
                         "amount": new_amount,
                         "active": True,
+                        "year": year,
                     }
                 )
                 st.success(f"Added '{new_name}' for {user}.")
@@ -93,16 +113,16 @@ def render_user_section(user: str) -> None:
 
 col_left, col_right = st.columns(2)
 with col_left:
-    render_user_section("Laerke")
+    render_user_section("Laerke", selected_year)
 with col_right:
-    render_user_section("Hector")
+    render_user_section("Hector", selected_year)
 
 
 st.divider()
-all_fixed = db.get_fixed_expenses()
+all_fixed = db.get_fixed_expenses(year=selected_year)
 laerke_total = sum(f["amount"] for f in all_fixed if f["user"] == "Laerke" and f["active"])
 hector_total = sum(f["amount"] for f in all_fixed if f["user"] == "Hector" and f["active"])
 
 c1, c2 = st.columns(2)
-c1.metric("Laerke fixed total / month", f"€{laerke_total:.2f}")
-c2.metric("Hector fixed total / month", f"€{hector_total:.2f}")
+c1.metric("Laerke fixed total / month", f"${laerke_total:.2f}")
+c2.metric("Hector fixed total / month", f"${hector_total:.2f}")

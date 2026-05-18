@@ -85,10 +85,12 @@ class SupabaseRepository:
 
     # --- Fixed Expenses ---
 
-    def get_fixed_expenses(self, user: str | None = None) -> list[dict]:
+    def get_fixed_expenses(self, user: str | None = None, year: int | None = None) -> list[dict]:
         query = self._client().table("fixed_expenses").select("*").order("name")
         if user:
             query = query.eq("user", user)
+        if year is not None:
+            query = query.eq("year", year)
         return query.execute().data
 
     def upsert_fixed_expense(self, row: dict) -> None:
@@ -103,6 +105,13 @@ class SupabaseRepository:
         self._client().table("fixed_expenses").update({"active": active}).eq(
             "id", expense_id
         ).execute()
+
+    def copy_fixed_expenses_year(self, from_year: int, to_year: int) -> None:
+        rows = self._client().table("fixed_expenses").select("*").eq("year", from_year).execute().data
+        for row in rows:
+            row.pop("id", None)
+            row["year"] = to_year
+            self._client().table("fixed_expenses").insert(row).execute()
 
     # --- Monthly Summary ---
 
@@ -254,8 +263,8 @@ def delete_transactions(month: int, year: int, user: str) -> None:
     get_repo().delete_transactions(month, year, user)
 
 
-def get_fixed_expenses(user: str | None = None) -> list[dict]:
-    return get_repo().get_fixed_expenses(user)
+def get_fixed_expenses(user: str | None = None, year: int | None = None) -> list[dict]:
+    return get_repo().get_fixed_expenses(user, year)
 
 
 def upsert_fixed_expense(row: dict) -> None:
@@ -268,6 +277,10 @@ def delete_fixed_expense(expense_id: str) -> None:
 
 def toggle_fixed_expense(expense_id: str, active: bool) -> None:
     get_repo().toggle_fixed_expense(expense_id, active)
+
+
+def copy_fixed_expenses_year(from_year: int, to_year: int) -> None:
+    get_repo().copy_fixed_expenses_year(from_year, to_year)
 
 
 def get_monthly_summaries() -> list[dict]:
