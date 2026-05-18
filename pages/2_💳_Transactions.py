@@ -93,7 +93,7 @@ edited_df = st.data_editor(
         "user": st.column_config.TextColumn("User", disabled=True, width="small"),
         "date": st.column_config.TextColumn("Date", disabled=True, width="small"),
         "description": st.column_config.TextColumn(
-            "Description", disabled=True, width="large"
+            "Description", disabled=False, width="large"
         ),
         "amount": st.column_config.NumberColumn(
             "Amount (€)", disabled=True, format="€%.2f", width="small"
@@ -111,21 +111,26 @@ edited_df = st.data_editor(
     num_rows="fixed",
 )
 
-changed = edited_df[edited_df["category"] != df["category"]]
+desc_changed = edited_df[edited_df["description"] != df["description"]]
+cat_changed = edited_df[edited_df["category"] != df["category"]]
+total_changes = len(desc_changed) + len(cat_changed)
 
 col1, col2 = st.columns([1, 3])
 with col1:
     if st.button(
-        f"💾 Save changes ({len(changed)} pending)",
+        f"💾 Save changes ({total_changes} pending)",
         type="primary",
-        disabled=len(changed) == 0,
+        disabled=total_changes == 0,
         use_container_width=True,
     ):
-        updates = changed[["id", "category"]].to_dict(orient="records")
         with st.spinner("Saving…"):
-            db.bulk_update_categories(updates)
+            for _, row in desc_changed.iterrows():
+                db.update_transaction_description(row["id"], row["description"])
+            if len(cat_changed) > 0:
+                cat_updates = cat_changed[["id", "category"]].to_dict(orient="records")
+                db.bulk_update_categories(cat_updates)
             calculator.calculate_settlement(month, year)
-        st.success(f"Saved {len(updates)} change(s) and updated settlement.")
+        st.success(f"Saved {total_changes} change(s) and updated settlement.")
         st.rerun()
 
     uncategorized_rows = [t for t in all_tx if t["category"] == "uncategorized"]

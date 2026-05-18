@@ -58,6 +58,12 @@ class FakeRepository:
                         t["reasoning"] = item["reasoning"][:300]
                     break
 
+    def update_transaction_description(self, tx_id: str, description: str) -> None:
+        for t in self._transactions:
+            if t["id"] == tx_id:
+                t["description"] = description
+                return
+
     def delete_transactions(self, month: int, year: int, user: str) -> None:
         self._transactions = [
             t for t in self._transactions
