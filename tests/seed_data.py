@@ -36,10 +36,10 @@ LAERKE_TRANSACTIONS = [
 ]
 
 FIXED_EXPENSES = [
-    {"user": "Hector",  "name": "Prestamo coche",  "amount": 250.00, "active": True},
-    {"user": "Hector",  "name": "Seguro hogar",     "amount": 45.00,  "active": True},
-    {"user": "Laerke",  "name": "SU loan",          "amount": 180.00, "active": True},
-    {"user": "Laerke",  "name": "Phone plan",       "amount": 30.00,  "active": False},  # inactive
+    {"user": "Hector",  "name": "Prestamo coche",  "amount": 250.00, "active": True,  "year": 2026},
+    {"user": "Hector",  "name": "Seguro hogar",     "amount": 45.00,  "active": True,  "year": 2026},
+    {"user": "Laerke",  "name": "SU loan",          "amount": 180.00, "active": True,  "year": 2026},
+    {"user": "Laerke",  "name": "Phone plan",       "amount": 30.00,  "active": False, "year": 2026},
 ]
 # fmt: on
 

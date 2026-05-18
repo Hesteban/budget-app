@@ -71,10 +71,12 @@ class FakeRepository:
         ]
 
     # Fixed Expenses
-    def get_fixed_expenses(self, user: str | None = None) -> list[dict]:
+    def get_fixed_expenses(self, user: str | None = None, year: int | None = None) -> list[dict]:
         rows = list(self._fixed_expenses)
         if user:
             rows = [f for f in rows if f["user"] == user]
+        if year is not None:
+            rows = [f for f in rows if f["year"] == year]
         return sorted(rows, key=lambda f: f["name"])
 
     def upsert_fixed_expense(self, row: dict) -> None:
@@ -98,6 +100,14 @@ class FakeRepository:
             if f["id"] == expense_id:
                 f["active"] = active
                 return
+
+    def copy_fixed_expenses_year(self, from_year: int, to_year: int) -> None:
+        for fe in self._fixed_expenses:
+            if fe["year"] == from_year:
+                new_fe = copy.deepcopy(fe)
+                new_fe.pop("id", None)
+                new_fe["year"] = to_year
+                self._fixed_expenses.append(new_fe)
 
     # Monthly Summary
     def get_monthly_summaries(self) -> list[dict]:

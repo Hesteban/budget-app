@@ -6,7 +6,7 @@ import calendar
 import pandas as pd
 import streamlit as st
 
-from budget import db
+from budget import db, calculator
 
 if not st.session_state.get("authenticated"):
     st.warning("Please log in from the Home page.")
@@ -24,6 +24,24 @@ available_years = sorted({s["year"] for s in all_summaries}, reverse=True)
 selected_year = int(st.selectbox("Year", options=available_years))
 
 summaries_by_month = {s["month"]: s for s in all_summaries if s["year"] == selected_year}
+
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("🔄 Recalculate all months for this year", use_container_width=True):
+        with st.spinner("Recalculating…"):
+            for m in range(1, 13):
+                if summaries_by_month.get(m):
+                    calculator.calculate_settlement(m, selected_year)
+        st.success("All settlements recalculated.")
+        st.rerun()
+with col2:
+    if st.button("🔄 Recalculate ALL years", use_container_width=True):
+        with st.spinner("Recalculating all settlements…"):
+            all_months = db.months_with_data()
+            for m_y in all_months:
+                calculator.calculate_settlement(m_y["month"], m_y["year"])
+        st.success("All settlements recalculated.")
+        st.rerun()
 
 st.divider()
 st.subheader(f"Monthly Breakdown — {selected_year}")

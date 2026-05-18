@@ -29,8 +29,12 @@ CREATE TABLE IF NOT EXISTS fixed_expenses (
     name       TEXT NOT NULL,
     amount     NUMERIC(10, 2) NOT NULL,
     active     BOOLEAN NOT NULL DEFAULT TRUE,
+    year       INTEGER NOT NULL DEFAULT 2026,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Migration: assign year=2026 to existing rows that have no year
+UPDATE fixed_expenses SET year = 2026 WHERE year IS NULL;
 
 -- ============================================================
 -- MONTHLY SUMMARY  (upserted by the calculator after categorisation)

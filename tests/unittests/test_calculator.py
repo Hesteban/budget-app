@@ -201,3 +201,21 @@ class TestSettledEdgeCase:
             result = calculator.calculate_settlement(MONTH, YEAR)
         assert result["who_pays_whom"] == "All settled ✓"
         assert abs(result["balance"]) <= 0.005
+
+
+# ---------------------------------------------------------------------------
+# Tests — fixed expenses year isolation
+# ---------------------------------------------------------------------------
+
+class TestFixedExpensesYearIsolation:
+    def test_2026_settlement_ignores_2025_expenses(self, repo: FakeRepository) -> None:
+        repo._fixed_expenses = [
+            f for f in repo._fixed_expenses if f["year"] != 2026
+        ]
+        repo.upsert_fixed_expense({
+            "user": "Hector", "name": "Old loan",
+            "amount": 100.00, "active": True, "year": 2025,
+        })
+        result = _run_calculator(repo)
+        assert result["fixed_hector"] == 0.0
+        assert result["fixed_laerke"] == 0.0

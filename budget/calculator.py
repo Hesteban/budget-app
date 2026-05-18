@@ -53,7 +53,7 @@ def calculate_settlement(month: int, year: int) -> dict:
     Returns the summary dict.
     """
     transactions = db.get_transactions(month, year)
-    fixed_expenses = db.get_fixed_expenses()
+    fixed_expenses = db.get_fixed_expenses(year=year)
 
     # --- Common transactions per user ---
     laerke_common_tx = [
