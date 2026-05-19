@@ -70,9 +70,10 @@ def render_user_section(user: str, year: int) -> None:
                     "Active",
                     value=exp["active"],
                     key=f"active_{exp['id']}",
+                    label_visibility="collapsed",
                 )
             with col4:
-                if st.button("Save", key=f"save_{exp['id']}"):
+                if st.button("Save", key=f"save_{exp['id']}", type="primary"):
                     db.upsert_fixed_expense(
                         {
                             "id": exp["id"],
@@ -110,6 +111,30 @@ def render_user_section(user: str, year: int) -> None:
                 st.success(f"Added '{new_name}' for {user}.")
                 st.rerun()
 
+
+st.markdown(
+    """
+    <style>
+    /* Prevent button labels from wrapping */
+    div[data-testid="stButton"] > button p {
+        white-space: nowrap;
+    }
+    /* Delete button — danger red */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(5)
+        > div[data-testid="stButton"] > button {
+        background-color: #ff4b4b !important;
+        color: white !important;
+        border: 1px solid #ff4b4b !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(5)
+        > div[data-testid="stButton"] > button:hover {
+        background-color: #e03030 !important;
+        border: 1px solid #e03030 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 col_left, col_right = st.columns(2)
 with col_left:
