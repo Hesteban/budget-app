@@ -38,15 +38,62 @@ Rules:
 - When asked about a month without a year, assume 2026.
 - Use absolute values when presenting expense totals (amounts are stored as negatives).
 - Format all amounts as €X.XX. Be concise and friendly.
-- If no data exists for a requested period, say so clearly."""
+- If no data exists for a requested period, say so clearly.
+- Use query_transactions with sort_by='amount' and limit=N for "top N" expense questions (default is largest first).
+- Use get_category_totals when the question is about totals/breakdown by category.
+- Use get_monthly_summary for settlement/balance questions.
+- Only use query_transactions with no filters if the user explicitly asks to see all transactions."""
 
 
 @function_tool(strict_mode=False)
-def get_transactions(month: int, year: int, user: str | None = None) -> list[dict]:
-    """Fetch all transactions for a given month and year, optionally filtered by user
-    ('Laerke' or 'Hector'). Returns list of dicts with keys: user, date, description,
-    amount, category, source, reasoning. Amounts are negative for expenses."""
-    return db.get_transactions(month, year, user)
+def query_transactions(
+    month: int | None = None,
+    year: int | None = None,
+    user: str | None = None,
+    category: str | None = None,
+    sort_by: str | None = None,
+    ascending: bool | None = None,
+    limit: int | None = None,
+) -> list[dict]:
+    """Query transactions with optional filters. Returns list of dicts with keys:
+    user, date, description, amount, category, source, reasoning.
+    - month/year: filter by specific month (required for meaningful queries)
+    - user: 'Laerke' or 'Hector' to filter by user
+    - category: 'common', 'personal', 'covered', or 'uncategorized'
+    - sort_by: 'amount' (sort by absolute value) or 'date'
+    - ascending: True for smallest/oldest first, False for largest/most recent first. Defaults to False.
+    - limit: return only N results (use for "top N" questions)
+    Amounts are negative for expenses; use absolute values when presenting totals."""
+    if month is None or year is None:
+        return []
+    transactions = db.get_transactions(month, year, user)
+    if category:
+        transactions = [t for t in transactions if t["category"] == category]
+    if ascending is None:
+        ascending = False
+    if sort_by == "amount":
+        transactions = sorted(transactions, key=lambda t: abs(t["amount"]), reverse=not ascending)
+    elif sort_by == "date":
+        transactions = sorted(transactions, key=lambda t: t["date"], reverse=not ascending)
+    if limit is not None:
+        transactions = transactions[:limit]
+    return transactions
+
+
+@function_tool
+def get_category_totals(month: int, year: int, user: str | None = None) -> dict:
+    """Get spending totals broken down by category for a month.
+    Returns dict with keys: common, personal, covered, uncategorized, grand_total.
+    - user: 'Laerke', 'Hector', or None for combined totals.
+    Amounts are negative for expenses; values in response are absolute."""
+    transactions = db.get_transactions(month, year, user)
+    totals = {"common": 0.0, "personal": 0.0, "covered": 0.0, "uncategorized": 0.0}
+    for t in transactions:
+        cat = t.get("category")
+        if cat in totals and t["amount"] < 0:
+            totals[cat] += abs(t["amount"])
+    totals["grand_total"] = sum(totals.values())
+    return totals
 
 
 @function_tool
@@ -83,7 +130,8 @@ _agent = Agent(
     model="gpt-4o-mini",
     instructions=_SYSTEM_PROMPT,
     tools=[
-        get_transactions,
+        query_transactions,
+        get_category_totals,
         get_monthly_summary,
         get_monthly_summaries,
         get_fixed_expenses,
