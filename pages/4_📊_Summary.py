@@ -102,6 +102,53 @@ with tab1:
         )
         st.metric("Personal expenses (info)", f"€{summary['hector_personal']:.2f}")
 
+    st.divider()
+    st.subheader("💰 Income & Savings")
+
+    fair_share = float(summary.get("fair_share") or 0)
+
+    ic1, ic2 = st.columns(2)
+
+    direct_per_person = float(summary.get("direct_per_person") or 0)
+
+    with ic1:
+        st.markdown("### 🟥 Laerke")
+        laerke_income = float(summary.get("laerke_income") or 0)
+        laerke_savings = float(summary.get("laerke_savings") or 0)
+        if laerke_income == 0:
+            st.warning("No MONKIMUN payroll found — recalculate after uploading transactions")
+        else:
+            st.metric("Payroll (MONKIMUN)", f"€{laerke_income:.2f}")
+        st.metric("Personal expenses", f"€{summary['laerke_personal']:.2f}")
+        st.metric("Fair share of common", f"€{fair_share:.2f}")
+        if direct_per_person > 0:
+            st.metric("Direct expenses (÷2)", f"€{direct_per_person:.2f}")
+        st.metric(
+            "Estimated savings",
+            f"€{laerke_savings:.2f}",
+            delta="surplus" if laerke_savings >= 0 else "deficit",
+            delta_color="normal" if laerke_savings >= 0 else "inverse",
+        )
+
+    with ic2:
+        st.markdown("### 🟦 Hector")
+        hector_income = float(summary.get("hector_income") or 0)
+        hector_savings = float(summary.get("hector_savings") or 0)
+        if hector_income == 0:
+            st.warning("No TELFISA payroll found — recalculate after uploading transactions")
+        else:
+            st.metric("Payroll (TELFISA)", f"€{hector_income:.2f}")
+        st.metric("Personal expenses", f"€{summary['hector_personal']:.2f}")
+        st.metric("Fair share of common", f"€{fair_share:.2f}")
+        if direct_per_person > 0:
+            st.metric("Direct expenses (÷2)", f"€{direct_per_person:.2f}")
+        st.metric(
+            "Estimated savings",
+            f"€{hector_savings:.2f}",
+            delta="surplus" if hector_savings >= 0 else "deficit",
+            delta_color="normal" if hector_savings >= 0 else "inverse",
+        )
+
 with tab2:
     st.subheader("📈 Multi-month comparison — Common expenses")
 
@@ -115,6 +162,8 @@ with tab2:
         hist["label"] = hist.apply(
             lambda r: f"{calendar.month_abbr[r['month']]} {r['year']}", axis=1
         )
+        hist["laerke_savings"] = pd.to_numeric(hist.get("laerke_savings"), errors="coerce").fillna(0)
+        hist["hector_savings"] = pd.to_numeric(hist.get("hector_savings"), errors="coerce").fillna(0)
 
         fig = go.Figure(
             data=[
@@ -177,6 +226,38 @@ with tab2:
             height=350,
         )
         st.plotly_chart(fig2, use_container_width=True)
+
+        st.subheader("💰 Estimated savings per month")
+        fig3 = go.Figure(
+            data=[
+                go.Bar(
+                    name="Laerke",
+                    x=hist["label"],
+                    y=hist["laerke_savings"],
+                    marker_color="#E63946",
+                    opacity=0.85,
+                    text=hist["laerke_savings"].apply(lambda v: f"€{v:.0f}"),
+                    textposition="outside",
+                ),
+                go.Bar(
+                    name="Hector",
+                    x=hist["label"],
+                    y=hist["hector_savings"],
+                    marker_color="#457B9D",
+                    opacity=0.85,
+                    text=hist["hector_savings"].apply(lambda v: f"€{v:.0f}"),
+                    textposition="outside",
+                ),
+            ]
+        )
+        fig3.update_layout(
+            barmode="group",
+            xaxis_title="Month",
+            yaxis_title="€",
+            template="plotly_white",
+            height=350,
+        )
+        st.plotly_chart(fig3, use_container_width=True)
 
 with tab3:
     summary_key = f"monthly_summary_{month}_{year}"

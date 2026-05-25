@@ -113,6 +113,22 @@ class SupabaseRepository:
             row["year"] = to_year
             self._client().table("fixed_expenses").insert(row).execute()
 
+    # --- Direct Expenses ---
+
+    def get_direct_expenses(self, year: int | None = None) -> list[dict]:
+        query = self._client().table("direct_expenses").select("*").order("name")
+        if year is not None:
+            query = query.eq("year", year)
+        return query.execute().data
+
+    def upsert_direct_expense(self, row: dict) -> None:
+        self._client().table("direct_expenses").upsert(row).execute()
+
+    def delete_direct_expense(self, expense_id: str) -> None:
+        self._client().table("direct_expenses").delete().eq(
+            "id", expense_id
+        ).execute()
+
     # --- Monthly Summary ---
 
     def get_monthly_summaries(self) -> list[dict]:
@@ -281,6 +297,18 @@ def toggle_fixed_expense(expense_id: str, active: bool) -> None:
 
 def copy_fixed_expenses_year(from_year: int, to_year: int) -> None:
     get_repo().copy_fixed_expenses_year(from_year, to_year)
+
+
+def get_direct_expenses(year: int | None = None) -> list[dict]:
+    return get_repo().get_direct_expenses(year)
+
+
+def upsert_direct_expense(row: dict) -> None:
+    get_repo().upsert_direct_expense(row)
+
+
+def delete_direct_expense(expense_id: str) -> None:
+    get_repo().delete_direct_expense(expense_id)
 
 
 def get_monthly_summaries() -> list[dict]:
