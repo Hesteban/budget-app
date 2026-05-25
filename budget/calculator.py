@@ -16,7 +16,17 @@ that has data (or from the base fixed_expenses table).
 """
 from __future__ import annotations
 
+import re
+
 from budget import db
+
+# Matches credit-card reconciliation entries on the account, e.g.:
+#   "REC.MCARD 05/01/2026 MOD.ACUM."
+_MCARD_RE = re.compile(r"REC\.MCARD\s+\d{2}/\d{2}/\d{4}", re.IGNORECASE)
+
+# Payroll description keywords (case-insensitive substring match on transaction description)
+_LAERKE_PAYROLL_KW = "MONKIMUN"
+_HECTOR_PAYROLL_KW = "TELFISA"
 
 
 
@@ -54,6 +64,7 @@ def calculate_settlement(month: int, year: int) -> dict:
     """
     transactions = db.get_transactions(month, year)
     fixed_expenses = db.get_fixed_expenses(year=year)
+    direct_expenses = db.get_direct_expenses(year=year)
 
     # --- Common transactions per user ---
     laerke_common_tx = [
@@ -68,16 +79,30 @@ def calculate_settlement(month: int, year: int) -> dict:
     hector_common = sum(abs(t["amount"]) for t in hector_common_tx)
 
     # --- Personal transactions per user ---
+    # Exclude account-side card reconciliation rows — spending already captured
+    # on the card; the REC.MCARD entry is just the repayment transfer.
     laerke_personal_tx = [
         t for t in transactions
-        if t["user"] == "Laerke" and t["category"] == "personal" and t["amount"] < 0
+        if t["user"] == "Laerke"
+        and t["category"] == "personal"
+        and (
+            # Expenses: any negative personal transaction except REC.MCARD account entries
+            (t["amount"] < 0 and not (t["source"] == "account" and _MCARD_RE.search(t["description"] or "")))
+            # Refunds: only card-source credits (account credits are income/transfers, not refunds)
+            or (t["amount"] > 0 and t["source"] == "card")
+        )
     ]
     hector_personal_tx = [
         t for t in transactions
-        if t["user"] == "Hector" and t["category"] == "personal" and t["amount"] < 0
+        if t["user"] == "Hector"
+        and t["category"] == "personal"
+        and (
+            (t["amount"] < 0 and not (t["source"] == "account" and _MCARD_RE.search(t["description"] or "")))
+            or (t["amount"] > 0 and t["source"] == "card")
+        )
     ]
-    laerke_personal = sum(abs(t["amount"]) for t in laerke_personal_tx)
-    hector_personal = sum(abs(t["amount"]) for t in hector_personal_tx)
+    laerke_personal = sum(-t["amount"] for t in laerke_personal_tx)
+    hector_personal = sum(-t["amount"] for t in hector_personal_tx)
 
     # --- Active fixed expenses per user ---
     fixed_laerke = sum(
@@ -89,6 +114,20 @@ def calculate_settlement(month: int, year: int) -> dict:
         fe["amount"]
         for fe in fixed_expenses
         if fe["user"] == "Hector" and fe["active"]
+    )
+
+    # --- Income per user (payroll credits) ---
+    laerke_income = sum(
+        t["amount"] for t in transactions
+        if t["user"] == "Laerke"
+        and _LAERKE_PAYROLL_KW in (t["description"] or "").upper()
+        and t["amount"] > 0
+    )
+    hector_income = sum(
+        t["amount"] for t in transactions
+        if t["user"] == "Hector"
+        and _HECTOR_PAYROLL_KW in (t["description"] or "").upper()
+        and t["amount"] > 0
     )
 
     # --- Settlement (50/50 on common + fixed) ---
@@ -107,6 +146,14 @@ def calculate_settlement(month: int, year: int) -> dict:
     else:
         who_pays_whom = "All settled ✓"
 
+    # --- Direct expenses (shared household costs settled outside the app) ---
+    direct_per_person = (
+        sum(de["amount"] for de in direct_expenses if de["active"]) / 2
+    )
+
+    laerke_savings = laerke_income - laerke_personal - fair_share - direct_per_person
+    hector_savings = hector_income - hector_personal - fair_share - direct_per_person
+
     summary = {
         "month": month,
         "year": year,
@@ -118,6 +165,12 @@ def calculate_settlement(month: int, year: int) -> dict:
         "hector_personal": round(hector_personal, 2),
         "balance": round(balance, 2),
         "who_pays_whom": who_pays_whom,
+        "fair_share": round(fair_share, 2),
+        "laerke_income": round(laerke_income, 2),
+        "hector_income": round(hector_income, 2),
+        "laerke_savings": round(laerke_savings, 2),
+        "hector_savings": round(hector_savings, 2),
+        "direct_per_person": round(direct_per_person, 2),
     }
 
     db.upsert_monthly_summary(summary)

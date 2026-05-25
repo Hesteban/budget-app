@@ -26,6 +26,7 @@ def _run_calculator(repo: FakeRepository) -> dict:
     with (
         patch("budget.calculator.db.get_transactions", side_effect=repo.get_transactions),
         patch("budget.calculator.db.get_fixed_expenses", side_effect=repo.get_fixed_expenses),
+        patch("budget.calculator.db.get_direct_expenses", side_effect=repo.get_direct_expenses),
         patch("budget.calculator.db.upsert_monthly_summary", side_effect=repo.upsert_monthly_summary),
         patch("budget.calculator.db.get_monthly_summary", side_effect=repo.get_monthly_summary),
     ):
@@ -44,6 +45,7 @@ def _run_get_or_calculate(repo: FakeRepository) -> dict | None:
     with (
         patch("budget.calculator.db.get_transactions", side_effect=repo.get_transactions),
         patch("budget.calculator.db.get_fixed_expenses", side_effect=repo.get_fixed_expenses),
+        patch("budget.calculator.db.get_direct_expenses", side_effect=repo.get_direct_expenses),
         patch("budget.calculator.db.upsert_monthly_summary", side_effect=repo.upsert_monthly_summary),
         patch("budget.calculator.db.get_monthly_summary", side_effect=repo.get_monthly_summary),
     ):
@@ -68,6 +70,10 @@ class TestCalculateSettlement:
             "fixed_laerke", "fixed_hector",
             "laerke_personal", "hector_personal",
             "balance", "who_pays_whom",
+            "fair_share",
+            "laerke_income", "hector_income",
+            "laerke_savings", "hector_savings",
+            "direct_per_person",
         }
         assert expected_keys == set(self.result.keys())
 
@@ -165,6 +171,7 @@ class TestGetOrCalculate:
         with (
             patch("budget.calculator.db.get_transactions", side_effect=empty_repo.get_transactions),
             patch("budget.calculator.db.get_fixed_expenses", side_effect=empty_repo.get_fixed_expenses),
+            patch("budget.calculator.db.get_direct_expenses", side_effect=empty_repo.get_direct_expenses),
             patch("budget.calculator.db.upsert_monthly_summary", side_effect=empty_repo.upsert_monthly_summary),
             patch("budget.calculator.db.get_monthly_summary", side_effect=empty_repo.get_monthly_summary),
         ):
@@ -195,6 +202,7 @@ class TestSettledEdgeCase:
         with (
             patch("budget.calculator.db.get_transactions", side_effect=r.get_transactions),
             patch("budget.calculator.db.get_fixed_expenses", side_effect=r.get_fixed_expenses),
+            patch("budget.calculator.db.get_direct_expenses", side_effect=r.get_direct_expenses),
             patch("budget.calculator.db.upsert_monthly_summary", side_effect=r.upsert_monthly_summary),
             patch("budget.calculator.db.get_monthly_summary", side_effect=r.get_monthly_summary),
         ):

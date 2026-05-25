@@ -149,5 +149,57 @@ laerke_total = sum(f["amount"] for f in all_fixed if f["user"] == "Laerke" and f
 hector_total = sum(f["amount"] for f in all_fixed if f["user"] == "Hector" and f["active"])
 
 c1, c2 = st.columns(2)
-c1.metric("Laerke fixed total / month", f"${laerke_total:.2f}")
-c2.metric("Hector fixed total / month", f"${hector_total:.2f}")
+c1.metric("Laerke fixed total / month", f"€{laerke_total:.2f}")
+c2.metric("Hector fixed total / month", f"€{hector_total:.2f}")
+
+st.divider()
+st.subheader("🏠 Direct Expenses")
+st.caption(
+    "Shared household costs settled directly between you (e.g. mortgage, insurance). "
+    "Split equally (÷2). Reduce savings only — not included in the monthly settlement."
+)
+
+direct = db.get_direct_expenses(year=selected_year)
+
+if not direct:
+    st.caption(f"No direct expenses for {selected_year}.")
+else:
+    for exp in direct:
+        d1, d2, d3, d4 = st.columns([3, 1.5, 1, 1])
+        with d1:
+            new_name = st.text_input(
+                "Name", value=exp["name"],
+                key=f"dname_{exp['id']}", label_visibility="collapsed",
+            )
+        with d2:
+            new_amount = st.number_input(
+                "Amount", value=float(exp["amount"]),
+                min_value=0.0, step=0.01, format="%.2f",
+                key=f"damount_{exp['id']}", label_visibility="collapsed",
+            )
+        with d3:
+            if st.button("Save", key=f"dsave_{exp['id']}", type="primary"):
+                db.upsert_direct_expense(
+                    {"id": exp["id"], "name": new_name, "amount": new_amount,
+                     "active": True, "year": selected_year}
+                )
+                st.success("Saved.")
+                st.rerun()
+        with d4:
+            if st.button("Delete", key=f"ddel_{exp['id']}"):
+                db.delete_direct_expense(exp["id"])
+                st.rerun()
+
+with st.expander(f"Add direct expense for {selected_year}"):
+    with st.form(key=f"add_direct_{selected_year}", clear_on_submit=True):
+        d_name = st.text_input("Name", placeholder="e.g. Mortgage, Insurance")
+        d_amount = st.number_input("Monthly amount", min_value=0.0, step=0.01, format="%.2f")
+        if st.form_submit_button("Add", type="primary") and d_name:
+            db.upsert_direct_expense(
+                {"name": d_name, "amount": d_amount, "active": True, "year": selected_year}
+            )
+            st.success(f"Added '{d_name}'.")
+            st.rerun()
+
+direct_total = sum(e["amount"] for e in direct if e["active"])
+st.metric("Total direct expenses / month (each person pays)", f"€{direct_total / 2:.2f}")

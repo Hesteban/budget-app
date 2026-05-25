@@ -14,6 +14,7 @@ class FakeRepository:
     def __init__(self) -> None:
         self._transactions: list[dict] = []
         self._fixed_expenses: list[dict] = []
+        self._direct_expenses: list[dict] = []
         self._monthly_summaries: list[dict] = []
         self._reports: dict[tuple[int, int], str] = {}
 
@@ -108,6 +109,30 @@ class FakeRepository:
                 new_fe.pop("id", None)
                 new_fe["year"] = to_year
                 self._fixed_expenses.append(new_fe)
+
+    # Direct Expenses
+    def get_direct_expenses(self, year: int | None = None) -> list[dict]:
+        rows = list(self._direct_expenses)
+        if year is not None:
+            rows = [e for e in rows if e["year"] == year]
+        return sorted(rows, key=lambda e: e["name"])
+
+    def upsert_direct_expense(self, row: dict) -> None:
+        record = copy.deepcopy(row)
+        expense_id = record.get("id")
+        if expense_id:
+            for i, e in enumerate(self._direct_expenses):
+                if e["id"] == expense_id:
+                    self._direct_expenses[i] = record
+                    return
+        record.setdefault("id", str(uuid.uuid4()))
+        record.setdefault("active", True)
+        self._direct_expenses.append(record)
+
+    def delete_direct_expense(self, expense_id: str) -> None:
+        self._direct_expenses = [
+            e for e in self._direct_expenses if e["id"] != expense_id
+        ]
 
     # Monthly Summary
     def get_monthly_summaries(self) -> list[dict]:

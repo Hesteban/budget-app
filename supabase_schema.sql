@@ -37,6 +37,19 @@ CREATE TABLE IF NOT EXISTS fixed_expenses (
 UPDATE fixed_expenses SET year = 2026 WHERE year IS NULL;
 
 -- ============================================================
+-- DIRECT EXPENSES  (shared household costs settled outside the app;
+--                   reduce savings only, never affect settlement)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS direct_expenses (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       TEXT NOT NULL,
+    amount     NUMERIC(10, 2) NOT NULL,
+    active     BOOLEAN NOT NULL DEFAULT TRUE,
+    year       INTEGER NOT NULL DEFAULT 2026,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================================
 -- MONTHLY SUMMARY  (upserted by the calculator after categorisation)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS monthly_summary (
@@ -51,9 +64,24 @@ CREATE TABLE IF NOT EXISTS monthly_summary (
     hector_personal   NUMERIC(10, 2) NOT NULL DEFAULT 0,
     balance           NUMERIC(10, 2) NOT NULL DEFAULT 0,
     who_pays_whom     TEXT,
+    fair_share        NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    laerke_income     NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    hector_income     NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    laerke_savings    NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    hector_savings    NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    direct_per_person NUMERIC(10, 2) NOT NULL DEFAULT 0,
     updated_at        TIMESTAMPTZ DEFAULT now(),
     UNIQUE (month, year)
 );
+
+-- Migration: add income/savings/direct/fair_share columns to existing monthly_summary table
+ALTER TABLE monthly_summary
+  ADD COLUMN IF NOT EXISTS fair_share         NUMERIC(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS laerke_income      NUMERIC(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS hector_income      NUMERIC(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS laerke_savings     NUMERIC(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS hector_savings     NUMERIC(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS direct_per_person  NUMERIC(10,2) NOT NULL DEFAULT 0;
 
 -- ============================================================
 -- MONTHLY REPORTS (AI-generated spending summary narratives)
@@ -73,6 +101,7 @@ CREATE TABLE IF NOT EXISTS monthly_reports (
 -- ============================================================
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fixed_expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE direct_expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE monthly_summary ENABLE ROW LEVEL SECURITY;
 ALTER TABLE monthly_reports ENABLE ROW LEVEL SECURITY;
 
@@ -86,6 +115,11 @@ CREATE POLICY "fixed_expenses: read all (anon)" ON public.fixed_expenses FOR SEL
 CREATE POLICY "fixed_expenses: insert all (anon)" ON public.fixed_expenses FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "fixed_expenses: update all (anon)" ON public.fixed_expenses FOR UPDATE TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "fixed_expenses: delete all (anon)" ON public.fixed_expenses FOR DELETE TO anon USING (true);
+
+CREATE POLICY "direct_expenses: read all (anon)"   ON public.direct_expenses FOR SELECT TO anon USING (true);
+CREATE POLICY "direct_expenses: insert all (anon)" ON public.direct_expenses FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "direct_expenses: update all (anon)" ON public.direct_expenses FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "direct_expenses: delete all (anon)" ON public.direct_expenses FOR DELETE TO anon USING (true);
 
 CREATE POLICY "monthly_summary: read all (anon)" ON public.monthly_summary FOR SELECT TO anon USING (true);
 CREATE POLICY "monthly_summary: insert all (anon)" ON public.monthly_summary FOR INSERT TO anon WITH CHECK (true);
@@ -108,6 +142,11 @@ CREATE POLICY "fixed_expenses: insert all (authenticated)" ON public.fixed_expen
 CREATE POLICY "fixed_expenses: update all (authenticated)" ON public.fixed_expenses FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "fixed_expenses: delete all (authenticated)" ON public.fixed_expenses FOR DELETE TO authenticated USING (true);
 
+CREATE POLICY "direct_expenses: read all (authenticated)"   ON public.direct_expenses FOR SELECT TO authenticated USING (true);
+CREATE POLICY "direct_expenses: insert all (authenticated)" ON public.direct_expenses FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "direct_expenses: update all (authenticated)" ON public.direct_expenses FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "direct_expenses: delete all (authenticated)" ON public.direct_expenses FOR DELETE TO authenticated USING (true);
+
 CREATE POLICY "monthly_summary: read all (authenticated)" ON public.monthly_summary FOR SELECT TO authenticated USING (true);
 CREATE POLICY "monthly_summary: insert all (authenticated)" ON public.monthly_summary FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "monthly_summary: update all (authenticated)" ON public.monthly_summary FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
@@ -126,6 +165,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON transactions TO authenticated;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON fixed_expenses TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON fixed_expenses TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON direct_expenses TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON direct_expenses TO authenticated;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON monthly_summary TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON monthly_summary TO authenticated;
