@@ -111,6 +111,44 @@ edited_df = st.data_editor(
     num_rows="fixed",
 )
 
+with st.expander("＋ Add Transaction"):
+    with st.form(key=f"add_tx_form_{month}_{year}", clear_on_submit=True):
+        col_date, col_desc, col_amount = st.columns([1, 2, 1])
+        with col_date:
+            new_date = st.date_input("Date", value=pd.Timestamp.today(), key="new_tx_date")
+        with col_desc:
+            new_description = st.text_input("Description", placeholder="e.g. Grocery shopping", key="new_tx_desc")
+        with col_amount:
+            new_amount = st.number_input("Amount (€)", step=0.01, key="new_tx_amount")
+        col_source, col_cat = st.columns(2)
+        with col_source:
+            new_source = st.selectbox("Source", options=["account", "card"], key="new_tx_source")
+        with col_cat:
+            new_category = st.selectbox("Category", options=CATEGORIES, key="new_tx_category")
+        submitted = st.form_submit_button("Add Transaction", type="primary", use_container_width=True)
+        if submitted:
+            if not active_user:
+                st.error("No active user. Please log in from the Home page.")
+            elif not new_description:
+                st.error("Please fill in all required fields.")
+            elif new_amount is None:
+                st.error("Please fill in all required fields.")
+            else:
+                new_tx = {
+                    "user": active_user,
+                    "month": month,
+                    "year": year,
+                    "date": new_date.isoformat(),
+                    "description": new_description,
+                    "amount": new_amount,
+                    "source": new_source,
+                    "category": new_category,
+                    "reasoning": "",
+                }
+                db.upsert_transactions([new_tx])
+                calculator.calculate_settlement(month, year)
+                st.rerun()
+
 desc_changed = edited_df[edited_df["description"] != df["description"]]
 cat_changed = edited_df[edited_df["category"] != df["category"]]
 total_changes = len(desc_changed) + len(cat_changed)
