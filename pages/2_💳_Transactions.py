@@ -91,7 +91,7 @@ edited_df = st.data_editor(
     column_config={
         "id": None,  # hidden
         "user": st.column_config.TextColumn("User", disabled=True, width="small"),
-        "date": st.column_config.TextColumn("Date", disabled=True, width="small"),
+        "date": st.column_config.TextColumn("Date", disabled=False, width="small"),
         "description": st.column_config.TextColumn(
             "Description", disabled=False, width="large"
         ),
@@ -163,7 +163,8 @@ if st.session_state.get("show_add_tx_form"):
 
 desc_changed = edited_df[edited_df["description"] != df["description"]]
 cat_changed = edited_df[edited_df["category"] != df["category"]]
-total_changes = len(desc_changed) + len(cat_changed)
+date_changed = edited_df[edited_df["date"] != df["date"]]
+total_changes = len(desc_changed) + len(cat_changed) + len(date_changed)
 
 col1, col2 = st.columns([1, 3])
 with col1:
@@ -176,6 +177,9 @@ with col1:
         with st.spinner("Saving…"):
             for _, row in desc_changed.iterrows():
                 db.update_transaction_description(row["id"], row["description"])
+            for _, row in date_changed.iterrows():
+                iso_date = pd.to_datetime(row["date"], format="%d/%m/%Y").strftime("%Y-%m-%d")
+                db.update_transaction_date(row["id"], iso_date)
             if len(cat_changed) > 0:
                 cat_updates = cat_changed[["id", "category"]].to_dict(orient="records")
                 db.bulk_update_categories(cat_updates)

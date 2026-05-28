@@ -65,6 +65,12 @@ class FakeRepository:
                 t["description"] = description
                 return
 
+    def update_transaction_date(self, tx_id: str, date: str) -> None:
+        for t in self._transactions:
+            if t["id"] == tx_id:
+                t["date"] = date
+                return
+
     def delete_transactions(self, month: int, year: int, user: str) -> None:
         self._transactions = [
             t for t in self._transactions
