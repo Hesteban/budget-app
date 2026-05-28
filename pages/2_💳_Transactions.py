@@ -111,7 +111,13 @@ edited_df = st.data_editor(
     num_rows="fixed",
 )
 
-with st.expander("＋ Add Transaction"):
+st.divider()
+add_col, _ = st.columns([1, 3])
+with add_col:
+    if st.button("＋ Add Transaction", use_container_width=True):
+        st.session_state["show_add_tx_form"] = True
+
+if st.session_state.get("show_add_tx_form"):
     with st.form(key=f"add_tx_form_{month}_{year}", clear_on_submit=True):
         col_date, col_desc, col_amount = st.columns([1, 2, 1])
         with col_date:
@@ -125,7 +131,7 @@ with st.expander("＋ Add Transaction"):
             new_source = st.selectbox("Source", options=["account", "card"], key="new_tx_source")
         with col_cat:
             new_category = st.selectbox("Category", options=CATEGORIES, key="new_tx_category")
-        submitted = st.form_submit_button("Add Transaction", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Add", type="primary")
         if submitted:
             if not active_user:
                 st.error("No active user. Please log in from the Home page.")
@@ -133,6 +139,8 @@ with st.expander("＋ Add Transaction"):
                 st.error("Please fill in all required fields.")
             elif new_amount is None:
                 st.error("Please fill in all required fields.")
+            elif new_date.month != month or new_date.year != year:
+                st.error(f"Date must be within {calendar.month_name[month]} {year}.")
             else:
                 new_tx = {
                     "user": active_user,
@@ -147,7 +155,11 @@ with st.expander("＋ Add Transaction"):
                 }
                 db.upsert_transactions([new_tx])
                 calculator.calculate_settlement(month, year)
+                st.session_state["show_add_tx_form"] = False
                 st.rerun()
+    if st.button("Cancel"):
+        st.session_state["show_add_tx_form"] = False
+        st.rerun()
 
 desc_changed = edited_df[edited_df["description"] != df["description"]]
 cat_changed = edited_df[edited_df["category"] != df["category"]]
