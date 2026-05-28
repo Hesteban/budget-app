@@ -174,18 +174,28 @@ with col1:
         disabled=total_changes == 0,
         use_container_width=True,
     ):
-        with st.spinner("Saving…"):
-            for _, row in desc_changed.iterrows():
-                db.update_transaction_description(row["id"], row["description"])
-            for _, row in date_changed.iterrows():
-                iso_date = pd.to_datetime(row["date"], format="%d/%m/%Y").strftime("%Y-%m-%d")
-                db.update_transaction_date(row["id"], iso_date)
-            if len(cat_changed) > 0:
-                cat_updates = cat_changed[["id", "category"]].to_dict(orient="records")
-                db.bulk_update_categories(cat_updates)
-            calculator.calculate_settlement(month, year)
-        st.success(f"Saved {total_changes} change(s) and updated settlement.")
-        st.rerun()
+        bad_dates = []
+        for _, row in date_changed.iterrows():
+            try:
+                pd.to_datetime(row["date"], format="%d/%m/%Y")
+            except ValueError:
+                bad_dates.append(row["date"])
+        if bad_dates:
+            for d in bad_dates:
+                st.error(f"Invalid date '{d}' — expected DD/MM/YYYY.")
+        else:
+            with st.spinner("Saving…"):
+                for _, row in desc_changed.iterrows():
+                    db.update_transaction_description(row["id"], row["description"])
+                for _, row in date_changed.iterrows():
+                    iso_date = pd.to_datetime(row["date"], format="%d/%m/%Y").strftime("%Y-%m-%d")
+                    db.update_transaction_date(row["id"], iso_date)
+                if len(cat_changed) > 0:
+                    cat_updates = cat_changed[["id", "category"]].to_dict(orient="records")
+                    db.bulk_update_categories(cat_updates)
+                calculator.calculate_settlement(month, year)
+            st.success(f"Saved {total_changes} change(s) and updated settlement.")
+            st.rerun()
 
     uncategorized_rows = [t for t in all_tx if t["category"] == "uncategorized"]
     if st.button(
