@@ -78,6 +78,11 @@ class SupabaseRepository:
             "id", tx_id
         ).execute()
 
+    def update_transaction_date(self, tx_id: str, date: str) -> None:
+        self._client().table("transactions").update({"date": date}).eq(
+            "id", tx_id
+        ).execute()
+
     def delete_transactions(self, month: int, year: int, user: str) -> None:
         self._client().table("transactions").delete().eq("month", month).eq(
             "year", year
@@ -273,6 +278,10 @@ def bulk_update_categories(updates: list[dict]) -> None:
 
 def update_transaction_description(tx_id: str, description: str) -> None:
     get_repo().update_transaction_description(tx_id, description)
+
+
+def update_transaction_date(tx_id: str, date: str) -> None:
+    get_repo().update_transaction_date(tx_id, date)
 
 
 def delete_transactions(month: int, year: int, user: str) -> None:

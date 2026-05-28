@@ -91,7 +91,7 @@ edited_df = st.data_editor(
     column_config={
         "id": None,  # hidden
         "user": st.column_config.TextColumn("User", disabled=True, width="small"),
-        "date": st.column_config.TextColumn("Date", disabled=True, width="small"),
+        "date": st.column_config.TextColumn("Date", disabled=False, width="small"),
         "description": st.column_config.TextColumn(
             "Description", disabled=False, width="large"
         ),
@@ -111,9 +111,60 @@ edited_df = st.data_editor(
     num_rows="fixed",
 )
 
+st.divider()
+add_col, _ = st.columns([1, 3])
+with add_col:
+    if st.button("＋ Add Transaction", use_container_width=True):
+        st.session_state["show_add_tx_form"] = True
+
+if st.session_state.get("show_add_tx_form"):
+    with st.form(key=f"add_tx_form_{month}_{year}", clear_on_submit=True):
+        col_date, col_desc, col_amount = st.columns([1, 2, 1])
+        with col_date:
+            new_date = st.date_input("Date", value=pd.Timestamp.today(), key="new_tx_date")
+        with col_desc:
+            new_description = st.text_input("Description", placeholder="e.g. Grocery shopping", key="new_tx_desc")
+        with col_amount:
+            new_amount = st.number_input("Amount (€)", step=0.01, key="new_tx_amount")
+        col_source, col_cat = st.columns(2)
+        with col_source:
+            new_source = st.selectbox("Source", options=["account", "card"], key="new_tx_source")
+        with col_cat:
+            new_category = st.selectbox("Category", options=CATEGORIES, key="new_tx_category")
+        submitted = st.form_submit_button("Add", type="primary")
+        if submitted:
+            if not active_user:
+                st.error("No active user. Please log in from the Home page.")
+            elif not new_description:
+                st.error("Please fill in all required fields.")
+            elif new_amount is None:
+                st.error("Please fill in all required fields.")
+            elif new_date.month != month or new_date.year != year:
+                st.error(f"Date must be within {calendar.month_name[month]} {year}.")
+            else:
+                new_tx = {
+                    "user": active_user,
+                    "month": month,
+                    "year": year,
+                    "date": new_date.isoformat(),
+                    "description": new_description,
+                    "amount": new_amount,
+                    "source": new_source,
+                    "category": new_category,
+                    "reasoning": "",
+                }
+                db.upsert_transactions([new_tx])
+                calculator.calculate_settlement(month, year)
+                st.session_state["show_add_tx_form"] = False
+                st.rerun()
+    if st.button("Cancel"):
+        st.session_state["show_add_tx_form"] = False
+        st.rerun()
+
 desc_changed = edited_df[edited_df["description"] != df["description"]]
 cat_changed = edited_df[edited_df["category"] != df["category"]]
-total_changes = len(desc_changed) + len(cat_changed)
+date_changed = edited_df[edited_df["date"] != df["date"]]
+total_changes = len(desc_changed) + len(cat_changed) + len(date_changed)
 
 col1, col2 = st.columns([1, 3])
 with col1:
@@ -123,15 +174,28 @@ with col1:
         disabled=total_changes == 0,
         use_container_width=True,
     ):
-        with st.spinner("Saving…"):
-            for _, row in desc_changed.iterrows():
-                db.update_transaction_description(row["id"], row["description"])
-            if len(cat_changed) > 0:
-                cat_updates = cat_changed[["id", "category"]].to_dict(orient="records")
-                db.bulk_update_categories(cat_updates)
-            calculator.calculate_settlement(month, year)
-        st.success(f"Saved {total_changes} change(s) and updated settlement.")
-        st.rerun()
+        bad_dates = []
+        for _, row in date_changed.iterrows():
+            try:
+                pd.to_datetime(row["date"], format="%d/%m/%Y")
+            except ValueError:
+                bad_dates.append(row["date"])
+        if bad_dates:
+            for d in bad_dates:
+                st.error(f"Invalid date '{d}' — expected DD/MM/YYYY.")
+        else:
+            with st.spinner("Saving…"):
+                for _, row in desc_changed.iterrows():
+                    db.update_transaction_description(row["id"], row["description"])
+                for _, row in date_changed.iterrows():
+                    iso_date = pd.to_datetime(row["date"], format="%d/%m/%Y").strftime("%Y-%m-%d")
+                    db.update_transaction_date(row["id"], iso_date)
+                if len(cat_changed) > 0:
+                    cat_updates = cat_changed[["id", "category"]].to_dict(orient="records")
+                    db.bulk_update_categories(cat_updates)
+                calculator.calculate_settlement(month, year)
+            st.success(f"Saved {total_changes} change(s) and updated settlement.")
+            st.rerun()
 
     uncategorized_rows = [t for t in all_tx if t["category"] == "uncategorized"]
     if st.button(
