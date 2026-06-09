@@ -179,9 +179,13 @@ class TestParseBankFile:
         df, _ = parse_bank_file(account_xlsx_bytes, "test.xlsx", "Laerke", MONTH, YEAR)
         assert (df["user"] == "Laerke").all()
 
-    def test_category_defaults_to_uncategorized(self, account_xlsx_bytes: bytes) -> None:
+    def test_category_from_rules(self, account_xlsx_bytes: bytes) -> None:
         df, _ = parse_bank_file(account_xlsx_bytes, "test.xlsx", "Hector", MONTH, YEAR)
-        assert (df["category"] == "uncategorized").all()
+        spotify_row = df[df["description"].str.contains("Spotify", case=False)].iloc[0]
+        assert spotify_row["category"] == "covered"
+        assert spotify_row["reasoning"] != ""
+        non_spotify = df[~df["description"].str.contains("Spotify", case=False)]
+        assert (non_spotify["category"] == "uncategorized").all()
 
     def test_date_is_iso_string(self, account_xlsx_bytes: bytes) -> None:
         df, _ = parse_bank_file(account_xlsx_bytes, "test.xlsx", "Hector", MONTH, YEAR)
@@ -293,8 +297,8 @@ class TestParseBankFileBulk:
         df, _ = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Laerke")
         assert (df["user"] == "Laerke").all()
 
-    def test_category_defaults_to_uncategorized(self, multi_month_xlsx_bytes: bytes) -> None:
-        """All rows should default to uncategorized category."""
+    def test_category_from_rules(self, multi_month_xlsx_bytes: bytes) -> None:
+        """No rules match any description in multi_month_xlsx_bytes, so all stay uncategorized."""
         from budget.importer import parse_bank_file_bulk
         df, _ = parse_bank_file_bulk(multi_month_xlsx_bytes, "multi.xlsx", "Hector")
         assert (df["category"] == "uncategorized").all()

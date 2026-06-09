@@ -157,6 +157,9 @@ def parse_bank_file(
     df["month"] = month
     df["year"] = year
     df["category"] = "uncategorized"
+    df["reasoning"] = ""
+    from budget.rule_categorizer import apply_rules
+    df = apply_rules(df)
     df["date"] = df["date"].apply(lambda d: d.isoformat() if d else None)
     df["description"] = df["description"].fillna("").str.strip()
 
@@ -201,6 +204,9 @@ def parse_bank_file_bulk(
 
     df["user"] = user
     df["category"] = "uncategorized"
+    df["reasoning"] = ""
+    from budget.rule_categorizer import apply_rules
+    df = apply_rules(df)
     df["date"] = df["date"].apply(lambda d: d.isoformat() if d else None)
     df["description"] = df["description"].fillna("").str.strip()
 
