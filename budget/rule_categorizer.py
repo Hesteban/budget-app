@@ -23,17 +23,20 @@ class Rule:
         return bool(re.search(pattern, description, re.IGNORECASE))
 
 RULES: list[Rule] = [
-    Rule("spotify",          "covered",  "Spotify subscription — excluded from split"),
-    Rule("netflix",          "covered",  "Netflix subscription — excluded from split"),
+    Rule("spotify",          "covered",  "Spotify subscription — covered in fixed expenses"),
+    Rule("hbo",              "covered",  "HBO subscription — covered in fixed expenses"),
     Rule("amazon",           "common",   "Amazon purchase — shared household expense"),
     Rule("mercadona",        "common",   "Supermarket — shared household expense"),
     Rule("aldi",             "common",   "Supermarket — shared household expense"),
     Rule("dia",              "common",   "Supermarket — shared household expense"),
     Rule("repsol",           "common",   "Fuel — shared household expense"),
     Rule("canal de",         "common",   "Water utility — shared household expense"),
-    Rule("pepe energy",      "common",   "Electricity — shared household expense"),
+    Rule("pepe mobil",       "covered",  "Phone and Internet connection — shared household expense"),
+    Rule("pepe ener",       "common",    "Electricity — shared household expense"),
     Rule("casa de ninos",    "common",   "Kindergarten — shared household expense"),
-    Rule("carlos rigagorda", "personal", "Hairdresser — personal expense"),
+    Rule("VOLKSWAGEN",       "covered",  "Car maintanance quota - shared car expense"),
+    Rule("PRESTAMO Y SEGUROS", "covered", "Mortgage adjustment - shared household expense"),
+    Rule("prosegur", "covered", "Security company - shared household expense")
 ]
 
 def categorize_description(description: str) -> tuple[ValidCategory, str] | None:

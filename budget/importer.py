@@ -222,5 +222,5 @@ def parse_bank_file_bulk(
 
 def df_to_records(df: pd.DataFrame) -> list[dict]:
     """Convert DataFrame to list of dicts for Supabase upsert."""
-    cols = ["user", "month", "year", "date", "description", "amount", "source", "category"]
+    cols = ["user", "month", "year", "date", "description", "amount", "source", "category", "reasoning"]
     return df[cols].to_dict(orient="records")

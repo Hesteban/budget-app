@@ -226,7 +226,7 @@ class TestDfToRecords:
         df, _ = parse_bank_file(account_xlsx_bytes, "test.xlsx", "Hector", MONTH, YEAR)
         records = df_to_records(df)
         expected_keys = {"user", "month", "year", "date", "description",
-                         "amount", "source", "category"}
+                         "amount", "source", "category", "reasoning"}
         assert set(records[0].keys()) == expected_keys
 
     def test_record_count_matches_df(self, account_xlsx_bytes: bytes) -> None:

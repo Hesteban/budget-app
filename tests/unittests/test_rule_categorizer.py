@@ -47,7 +47,7 @@ class TestCategorizeDescription:
         assert result is not None
         category, reasoning = result
         assert category == "covered"
-        assert "excluded from split" in reasoning
+        assert "covered in fixed expenses" in reasoning
 
     def test_returns_common_for_amazon(self):
         result = categorize_description("WWW.AMAZON*ZQ7HH4QE5")
@@ -72,7 +72,7 @@ class TestApplyRules:
         })
         apply_rules(df)
         assert df.at[0, "category"] == "covered"
-        assert "excluded from split" in df.at[0, "reasoning"]
+        assert "covered in fixed expenses" in df.at[0, "reasoning"]
         assert df.at[1, "category"] == "uncategorized"
         assert df.at[1, "reasoning"] == ""
         assert df.at[2, "category"] == "common"
