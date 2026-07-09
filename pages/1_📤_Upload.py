@@ -27,7 +27,7 @@ with col1:
     month = st.selectbox(
         "Month",
         options=list(range(1, 13)),
-        format_func=lambda m: calendar.month_name[m],
+        format_func=lambda m: str(calendar.month_name[m]),
         index=pd.Timestamp.now().month - 1,
     )
 with col2:
@@ -47,8 +47,8 @@ st.divider()
 # --- Single-month upload (existing flow) ---
 st.subheader("Single Month Upload")
 uploaded = st.file_uploader(
-    "Upload your bank export (.xls or .xlsx)",
-    type=["xls", "xlsx"],
+    "Upload your bank export (.xls, .xlsx or .csv)",
+    type=["xls", "xlsx", "csv"],
     help="Export your movements from your bank's online portal and upload here.",
     key="single_month_upload",
 )
@@ -106,20 +106,26 @@ if uploaded is not None:
 st.divider()
 
 # --- Bulk upload (new flow) ---
+# TODO: CSV bulk upload not yet supported (single-month only for CSV files).
 with st.expander("📦 Bulk Upload — Multiple Months", expanded=False):
     st.write(
         "Upload a single file containing transactions from multiple months. "
-        "All months will be imported in one go. Duplicates are automatically skipped."
+        "All months will be imported in one go. Duplicates are automatically skipped. "
+        "Note: CSV files are only supported in single-month upload for now."
     )
 
     bulk_uploaded = st.file_uploader(
-        "Upload your bank export (.xls or .xlsx) with multiple months",
-        type=["xls", "xlsx"],
+        "Upload your bank export (.xls, .xlsx or .csv) with multiple months",
+        type=["xls", "xlsx", "csv"],
         help="Export your movements from your bank's online portal. The file can contain multiple months.",
         key="bulk_upload",
     )
 
     if bulk_uploaded is not None:
+        if bulk_uploaded.name.lower().endswith(".csv"):
+            st.error("❌ CSV bulk import is not supported. Use single-month upload for CSV files.")
+            st.stop()
+
         bulk_bytes = bulk_uploaded.read()
 
         with st.spinner("Parsing bulk file…"):
@@ -127,6 +133,9 @@ with st.expander("📦 Bulk Upload — Multiple Months", expanded=False):
                 bulk_df, bulk_fmt = importer.parse_bank_file_bulk(
                     bulk_bytes, bulk_uploaded.name, active_user
                 )
+            except NotImplementedError as e:
+                st.error(f"❌ {e}")
+                st.stop()
             except ValueError as e:
                 st.error(f"❌ {e}")
                 st.stop()

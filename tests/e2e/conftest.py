@@ -10,6 +10,14 @@ from __future__ import annotations
 
 import calendar
 import os
+import subprocess
+import sys
+import time
+from collections.abc import Iterator
+
+import urllib.request
+
+
 import pytest
 
 from playwright.sync_api import Page, expect
@@ -34,6 +42,43 @@ def expected_settlement() -> dict:
             db.upsert_fixed_expense(fe)                                                                                                                                                                                                               
     return calculator.calculate_settlement(MONTH, YEAR)
 
+@pytest.fixture(scope="session", autouse=True)
+def streamlit_server(base_url: str) -> Iterator[None]:
+    """
+    Start the Streamlit server for the e2e suite, wait until it is ready,
+    then terminate it after the session ends.
+    """
+    env = os.environ.copy()
+    env["APP_ENV"] = "test"
+
+    process = subprocess.Popen(
+        [sys.executable, "-m", "streamlit", "run", "main.py", "--server.port=8501"],
+        cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    # Wait for the server to become ready
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(base_url, timeout=1):
+                break
+        except Exception:
+            time.sleep(0.5)
+    else:
+        process.terminate()
+        raise RuntimeError(f"Streamlit server did not start within 30s ({base_url})")
+
+    yield
+
+    # Teardown
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
 
 @pytest.fixture()
 def transactions_page(page: Page, base_url: str) -> Page:
