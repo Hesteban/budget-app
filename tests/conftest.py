@@ -1,13 +1,16 @@
 """
 Pytest fixtures shared across all test modules.
 
-repo         — fresh FakeRepository seeded with March 2026 data
-               (8 transactions per user + 2 fixed expenses per user)
-account_xlsx_bytes — in-memory .xlsx bytes in the bank "account" format
+repo                 — fresh FakeRepository seeded with March 2026 data
+                      (8 transactions per user + 2 fixed expenses per user)
+account_xlsx_bytes   — in-memory .xlsx bytes in the bank "account" format
+multi_month_xlsx_bytes — in-memory .xlsx bytes spanning 3 months (bulk format)
+tradebank_csv_bytes  — in-memory .csv bytes in the TradeBank format
 """
 from __future__ import annotations
 
 import io
+from pathlib import Path
 
 import openpyxl
 import pytest
@@ -154,3 +157,43 @@ def multi_month_xlsx_bytes() -> bytes:
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# tradebank_csv_bytes fixture
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def tradebank_csv_bytes() -> bytes:
+    """
+    In-memory .csv bytes matching the TradeBank export shape.
+
+    Reads the synthetic new_bank.csv from the tests folder (June 2026). Contains:
+      - 2 BUY rows (TRADING) — should be filtered out
+      - 1 BENEFITS_SAVEBACK row (CASH, not CARD_TRANSACTION) — filtered out
+      - 1 INTEREST_PAYMENT row (CASH, not CARD_TRANSACTION) — filtered out
+      - 2 TRANSFER_INBOUND rows (CASH, not CARD_TRANSACTION) — filtered out
+      - 11 CARD_TRANSACTION rows (CASH + CARD_TRANSACTION) — kept
+    """
+    csv_path = Path(__file__).resolve().parent / "new_bank.csv"
+    return csv_path.read_bytes()
+
+
+@pytest.fixture()
+def tradebank_csv_simple_bytes() -> bytes:
+    """
+    Synthetic TradeBank CSV bytes for parser-level unit tests.
+
+    Mix of CASH+CARD_TRANSACTION, CASH+non-CARD, TRADING, and a February row
+    (used to verify single-month filtering).
+    """
+    csv_text = (
+        '"datetime","date","account_type","category","type","asset_class","name","symbol","shares","price","amount","fee","tax","currency","original_amount","original_currency","fx_rate","description","transaction_id","counterparty_name","counterparty_iban","payment_reference","mcc_code"\n'
+        '"2026-06-04T14:51:27Z","2026-06-04","DEFAULT","CASH","CARD_TRANSACTION","","AHORRAMAS","","","","-130.550000","","","EUR","","","","AHORRAMAS","x1","","","","5411"\n'
+        '"2026-06-04T14:51:28Z","2026-06-04","DEFAULT","TRADING","BUY","FUND","Some Fund","IE00","1","100","-100.00","","","EUR","","","","Savings plan","y1","","","",""\n'
+        '"2026-06-05T08:18:52Z","2026-06-05","DEFAULT","CASH","TRANSFER_INBOUND","","HECTOR","","","","6000.000000","","","EUR","","","","Transfer in","z1","HECTOR","ES1","",""\n'
+        '"2026-06-17T11:28:34Z","2026-06-17","DEFAULT","CASH","CARD_TRANSACTION","","CHIRINGUITO","","","","-2.500000","","","EUR","","","","CHIRINGUITO","x2","","","","5812"\n'
+        '"2026-06-17T13:40:52Z","2026-06-17","DEFAULT","CASH","CARD_TRANSACTION","","DUENAS M.I.","","","","-111.990000","","","EUR","","","","DUENAS M.I.","x3","","","","5541"\n'
+        '"2026-02-04T14:51:27Z","2026-02-04","DEFAULT","CASH","CARD_TRANSACTION","","OLD","","","","-10.000000","","","EUR","","","","OLD","x4","","","","5411"\n'
+    )
+    return csv_text.encode("utf-8")

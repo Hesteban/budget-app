@@ -97,6 +97,31 @@ class TestApplyRules:
         apply_rules(df)
         assert df.at[0, "category"] == "covered"
 
+    def test_works_with_non_contiguous_integer_labels(self):
+        """
+        Regression: apply_rules must use the row's actual label when assigning,
+        not its position. With non-contiguous labels (which is what happens after
+        df.loc[boolean_mask] in the CSV import path), the previous implementation
+        wrote to the wrong rows / created spurious new rows.
+        """
+        df = pd.DataFrame(
+            {
+                "description": ["Spotify P42", "Random", "Amazon order"],
+                "category": ["uncategorized"] * 3,
+                "reasoning": [""] * 3,
+            },
+            index=[5, 8, 9],
+        )
+        apply_rules(df)
+        assert df.at[5, "category"] == "covered"
+        assert df.at[5, "reasoning"] != ""
+        assert df.at[8, "category"] == "uncategorized"
+        assert df.at[9, "category"] == "common"
+        assert df.at[9, "reasoning"] != ""
+        # Must not have grown the DataFrame.
+        assert len(df) == 3
+        assert df.index.tolist() == [5, 8, 9]
+
 
 class TestRULES:
     def test_spotify_in_rules(self):

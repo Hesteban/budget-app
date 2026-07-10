@@ -46,9 +46,9 @@ def categorize_description(description: str) -> tuple[ValidCategory, str] | None
     return None
 
 def apply_rules(df):
-    for i, desc in enumerate(df["description"]):
+    for label, desc in df["description"].items():
         result = categorize_description(desc)
         if result:
-            df.at[i, "category"] = result[0]
-            df.at[i, "reasoning"] = result[1]
+            df.at[label, "category"] = result[0]
+            df.at[label, "reasoning"] = result[1]
     return df

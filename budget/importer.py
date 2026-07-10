@@ -1,9 +1,11 @@
 """
-XLS/XLSX importer for bank exports.
+XLS/XLSX and CSV importer for bank exports.
 
-Supports two formats produced by the same bank:
-  - "account"  : Fecha de operación | Fecha valor | Concepto | Importe | Divisa | Saldo | Nº mov | Oficina
-  - "card"     : Fecha operación | Hora | Nombre comercio | Concepto | Importe | Divisa
+Supports the following formats:
+  - XLS/XLSX "account"  : Fecha de operación | Fecha valor | Concepto | Importe | Divisa | Saldo | Nº mov | Oficina
+  - XLS/XLSX "card"     : Fecha operación | Hora | Nombre comercio | Concepto | Importe | Divisa
+  - CSV                 : dispatched to a CSVParser from budget.csv_importers (registry).
+                         TradeBankCSV is the first concrete implementation.
 """
 from __future__ import annotations
 
@@ -121,6 +123,90 @@ def load_xls(file_bytes: bytes, filename: str) -> pd.DataFrame:
     return df
 
 
+def load_csv(file_bytes: bytes) -> pd.DataFrame:
+    """Read raw CSV bytes into a DataFrame."""
+    buf = io.BytesIO(file_bytes)
+    return pd.read_csv(buf)
+
+
+def _post_process(
+    df: pd.DataFrame,
+    user: str,
+    month: int | None = None,
+    year: int | None = None,
+) -> pd.DataFrame:
+    """
+    Common normalisation applied to both XLS and CSV parsed DataFrames.
+
+    - Assigns user / month / year.
+    - Default category='uncategorized' and reasoning='', then runs `apply_rules`.
+    - Converts date objects to ISO 'YYYY-MM-DD' strings (idempotent if already a string).
+    - Strips description, drops null amounts, dedups on (user, date, description, amount, source).
+
+    `month` and `year` are passed for single-month parsing; when omitted
+    (bulk parsing) they are derived from each row's date.
+    """
+    df = df.copy()
+    df["user"] = user
+    if month is not None:
+        df["month"] = month
+    else:
+        df["month"] = df["date"].apply(
+            lambda d: d.month if hasattr(d, "month") else None
+        )
+    if year is not None:
+        df["year"] = year
+    else:
+        df["year"] = df["date"].apply(
+            lambda d: d.year if hasattr(d, "year") else None
+        )
+
+    df["category"] = "uncategorized"
+    df["reasoning"] = ""
+    from budget.rule_categorizer import apply_rules
+    df = apply_rules(df)
+    df["date"] = df["date"].apply(
+        lambda d: d.isoformat() if hasattr(d, "isoformat") and not isinstance(d, str) else d
+    )
+    df["description"] = df["description"].fillna("").str.strip()
+
+    df = df[df["amount"].notna()].copy()
+    df = df.drop_duplicates(subset=["user", "date", "description", "amount", "source"])
+    return df
+
+
+def _parse_csv_bank_file(
+    file_bytes: bytes,
+    filename: str,
+    user: str,
+    month: int,
+    year: int,
+) -> tuple[pd.DataFrame, str]:
+    """
+    Parse a CSV bank export by dispatching to a registered CSVParser.
+
+    Returns (df, fmt) where fmt is the parser's `name` (e.g. 'card' for TradeBankCSV).
+    Raises ValueError if no registered parser matches the columns.
+    """
+    from budget.csv_importers import detect_csv_parser
+
+    raw = load_csv(file_bytes)
+    raw = raw.dropna(how="all").reset_index(drop=True)
+
+    parser = detect_csv_parser(raw)  # raises ValueError if no match
+
+    df = parser.parse(raw)
+
+    mask = (
+        (df["date"].apply(lambda d: d.month if d else None) == month)
+        & (df["date"].apply(lambda d: d.year if d else None) == year)
+    )
+    df = df.loc[mask].copy()
+
+    df = _post_process(df, user, month, year)
+    return df, parser.name
+
+
 def parse_bank_file(
     file_bytes: bytes,
     filename: str,
@@ -129,12 +215,18 @@ def parse_bank_file(
     year: int,
 ) -> tuple[pd.DataFrame, str]:
     """
-    Parse a bank XLS/XLSX file and return a normalised DataFrame ready for
-    Supabase insertion, plus the detected format string ('account' | 'card').
+    Parse a bank export file (XLS/XLSX or CSV) and return a normalised DataFrame
+    ready for Supabase insertion, plus the detected format string.
+
+    CSV files are dispatched to the CSVParser registry in budget.csv_importers.
+    XLS/XLSX files use the legacy account/card format detection.
 
     Returned DataFrame columns:
-        user, month, year, date (str ISO), description, amount, source, category
+        user, month, year, date (str ISO), description, amount, source, category, reasoning
     """
+    if filename.lower().endswith(".csv"):
+        return _parse_csv_bank_file(file_bytes, filename, user, month, year)
+
     raw = load_xls(file_bytes, filename)
 
     # Drop fully empty rows/cols
@@ -148,28 +240,13 @@ def parse_bank_file(
         df = parse_card_format(raw)
 
     # Filter to the selected month/year
-    df = df[
+    mask = (
         (df["date"].apply(lambda d: d.month if d else None) == month)
         & (df["date"].apply(lambda d: d.year if d else None) == year)
-    ].copy()
+    )
+    df = df.loc[mask].copy()
 
-    df["user"] = user
-    df["month"] = month
-    df["year"] = year
-    df["category"] = "uncategorized"
-    df["reasoning"] = ""
-    from budget.rule_categorizer import apply_rules
-    df = apply_rules(df)
-    df["date"] = df["date"].apply(lambda d: d.isoformat() if d else None)
-    df["description"] = df["description"].fillna("").str.strip()
-
-    # Keep only rows with actual amounts
-    df = df[df["amount"].notna()].copy()
-
-    # Deduplicate within the file itself before sending to Supabase.
-    # The unique constraint is (user, date, description, amount, source) — same as DB.
-    df = df.drop_duplicates(subset=["user", "date", "description", "amount", "source"])
-
+    df = _post_process(df, user, month, year)
     return df, fmt
 
 
@@ -179,13 +256,18 @@ def parse_bank_file_bulk(
     user: str,
 ) -> tuple[pd.DataFrame, str]:
     """
-    Parse a bank XLS/XLSX file and return a normalised DataFrame containing
-    transactions for ALL months in the file (no month/year filtering).
+    Parse a bank export file (XLS/XLSX) and return a normalised DataFrame
+    containing transactions for ALL months in the file (no month/year filtering).
     Month and year are derived from each row's date.
 
     Returned DataFrame columns:
-        user, month, year, date (str ISO), description, amount, source, category
+        user, month, year, date (str ISO), description, amount, source, category, reasoning
     """
+    if filename.lower().endswith(".csv"):
+        raise NotImplementedError(
+            "CSV bulk import is not yet supported. Use single-month upload for CSV files."
+        )
+
     raw = load_xls(file_bytes, filename)
 
     # Drop fully empty rows/cols
@@ -202,21 +284,7 @@ def parse_bank_file_bulk(
     df["month"] = df["date"].apply(lambda d: d.month if d else None)
     df["year"] = df["date"].apply(lambda d: d.year if d else None)
 
-    df["user"] = user
-    df["category"] = "uncategorized"
-    df["reasoning"] = ""
-    from budget.rule_categorizer import apply_rules
-    df = apply_rules(df)
-    df["date"] = df["date"].apply(lambda d: d.isoformat() if d else None)
-    df["description"] = df["description"].fillna("").str.strip()
-
-    # Keep only rows with actual amounts
-    df = df[df["amount"].notna()].copy()
-
-    # Deduplicate within the file itself before sending to Supabase.
-    # The unique constraint is (user, date, description, amount, source) — same as DB.
-    df = df.drop_duplicates(subset=["user", "date", "description", "amount", "source"])
-
+    df = _post_process(df, user)
     return df, fmt
 
 
