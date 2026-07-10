@@ -10,8 +10,9 @@ A Streamlit-based shared expense tracker for two users (Laerke and Hector). It i
 
 ### Setup
 ```bash
-# The project uses a pyenv virtualenv named .venv (not a local venv/ directory)
-pyenv shell .venv        # activate for the current shell session
+# The project uses a pyenv virtualenv named .venv (linked to .venv/ in this repo)
+# Prefer the venv activation when pyenv shell integration is not enabled:
+source .venv/bin/activate
 
 pip install -r requirements.txt
 pip install -r requirements-test.txt  # for testing
@@ -27,17 +28,17 @@ APP_ENV=test streamlit run main.py
 ```
 
 ### Tests
-Ensure the `.venv` pyenv virtualenv is active before running any test command (`pyenv shell .venv`), otherwise `pytest` resolves to the base interpreter which is missing all packages.
+Ensure the `.venv` pyenv virtualenv is active before running any test command. If `pyenv shell .venv` is unavailable (pyenv shell integration not enabled), use `source .venv/bin/activate`. Otherwise `pytest` resolves to the base interpreter which is missing all packages.
 
 ```bash
 # All unit tests
-APP_ENV=test pytest tests/unittests/ -v
+source .venv/bin/activate && APP_ENV=test pytest tests/unittests/ -v
 
 # Single test file
-APP_ENV=test pytest tests/unittests/test_calculator.py -v
+source .venv/bin/activate && APP_ENV=test pytest tests/unittests/test_calculator.py -v
 
 # E2E tests (requires Streamlit server running in another terminal)
-APP_ENV=test pytest tests/e2e/ -v -m e2e
+source .venv/bin/activate && APP_ENV=test pytest tests/e2e/ -v -m e2e
 ```
 
 Run e2e tests whenever a Streamlit page is added or changed — unit tests only cover business logic and won't catch UI-level regressions. Start the app in test mode in one terminal, then run the e2e suite in another.
