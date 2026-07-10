@@ -133,7 +133,7 @@ def summary_page(page: Page, base_url: str) -> Page:
     )
     # Select the seed data month in the Month filter (defaults to current month)
     month_name = calendar.month_name[MONTH]
-    month_select = page.locator('[data-baseweb="select"]').first
+    month_select = page.locator('[data-testid="stSelectbox"]').first
     month_select.click()
     page.get_by_role("option", name=month_name, exact=True).click()
 
