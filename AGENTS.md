@@ -110,7 +110,7 @@ header_row = 10  # 0-based row index for the header in bank exports
 
 ## Deployment / Keepalive
 
-The app is deployed on Streamlit Community Cloud. The Supabase free tier pauses projects after ~7 days of inactivity, so a GitHub Actions cron workflow pings the Supabase REST API every other day.
+The app is deployed on Streamlit Community Cloud. The Supabase free tier pauses projects after ~7 days of inactivity, so a GitHub Actions cron workflow pings the Supabase REST API twice a day.
 
 Workflow: `.github/workflows/keep_supabase_alive.yml`.
 Required repository secrets: `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
