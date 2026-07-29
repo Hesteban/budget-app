@@ -82,6 +82,9 @@ df = pd.DataFrame(display_tx)
 df = df[["id", "user", "date", "description", "amount", "source", "category"]].copy()
 df["date"] = pd.to_datetime(df["date"]).dt.strftime("%d/%m/%Y")
 df["amount"] = df["amount"].apply(lambda x: float(x))
+# ponytail: selection column is the cheapest multi-row selector available
+# in st.data_editor; no extra widget or dependency needed.
+df["select"] = False
 
 # Category column as a selectable type
 CATEGORIES = ["uncategorized", "personal", "common", "covered"]
@@ -90,6 +93,7 @@ edited_df = st.data_editor(
     df,
     column_config={
         "id": None,  # hidden
+        "select": st.column_config.CheckboxColumn("✓", width="small"),
         "user": st.column_config.TextColumn("User", disabled=True, width="small"),
         "date": st.column_config.TextColumn("Date", disabled=False, width="small"),
         "description": st.column_config.TextColumn(
@@ -109,6 +113,8 @@ edited_df = st.data_editor(
     hide_index=True,
     use_container_width=True,
     num_rows="fixed",
+    # ponytail: changing filters resets the selection for free via key change
+    key=f"tx_editor_{month}_{year}_{user_filter}_{cat_filter}",
 )
 
 st.divider()
@@ -165,6 +171,10 @@ desc_changed = edited_df[edited_df["description"] != df["description"]]
 cat_changed = edited_df[edited_df["category"] != df["category"]]
 date_changed = edited_df[edited_df["date"] != df["date"]]
 total_changes = len(desc_changed) + len(cat_changed) + len(date_changed)
+
+# ponytail: selected rows are computed here because the bulk apply widget
+# lives in the same action column as Save changes and Auto-categorize.
+selected = edited_df[edited_df["select"]]
 
 col1, col2 = st.columns([1, 3])
 with col1:
@@ -233,6 +243,35 @@ with col1:
             "skipped": skipped_results,
         }
         st.rerun()
+
+    st.divider()
+    bulk_category = st.selectbox(
+        "Apply category to selected rows",
+        options=CATEGORIES,
+        key="bulk_category",
+    )
+    # ponytail: only block the button when the selection is empty or
+    # every selected row already has the chosen category
+    already_same = not selected.empty and (selected["category"] == bulk_category).all()
+    # ponytail: highlight the button as soon as at least one row is selected
+    if st.button(
+        f"Apply to selected ({len(selected)})",
+        disabled=len(selected) == 0 or already_same,
+        type="primary" if len(selected) > 0 else "secondary",
+        use_container_width=True,
+    ):
+        if total_changes > 0:
+            st.warning(
+                "You have unsaved row edits. Save or discard them before bulk-applying."
+            )
+        else:
+            updates = [
+                {"id": row["id"], "category": bulk_category}
+                for _, row in selected.iterrows()
+            ]
+            db.bulk_update_categories(updates)
+            calculator.calculate_settlement(month, year)
+            st.rerun()
 
 with col2:
     # Running totals
