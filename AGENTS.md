@@ -107,3 +107,13 @@ header_row = 10  # 0-based row index for the header in bank exports
 - **User names**: Hardcoded as `"Laerke"` and `"Hector"` throughout DB constraints, calculations, and UI.
 - **Amounts**: Stored as floats; negative = debit/expense. Settlement math uses absolute values.
 - **`APP_ENV=test`**: Must be set for all test commands; activates FakeRepository and seeds test data in `main.py`.
+
+## Deployment / Keepalive
+
+The app is deployed on Streamlit Community Cloud. The Supabase free tier pauses projects after ~7 days of inactivity, so a GitHub Actions cron workflow pings the Supabase REST API every other day.
+
+Workflow: `.github/workflows/keep_supabase_alive.yml`.
+Required repository secrets: `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+The endpoint hit is a read-only `GET` on `monthly_summary` with `limit=1`; the existing `anon` RLS policies allow this.
+
+If the Supabase project is already paused when the workflow starts, resume it manually once from the Supabase Dashboard.

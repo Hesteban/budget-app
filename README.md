@@ -124,6 +124,6 @@ Push to GitHub (ensure `.streamlit/secrets.toml` is in `.gitignore`), then deplo
 
 ## Notes
 
-- **Supabase free tier** pauses after 1 week of inactivity—upgrade or keep active after deployment
+- **Supabase free tier** pauses after 1 week of inactivity. The included `.github/workflows/keep_supabase_alive.yml` cron job pings Supabase every other day to prevent pausing; add `SUPABASE_URL` and `SUPABASE_ANON_KEY` as repository secrets.
 - Test mode uses in-memory FakeRepository; no Supabase connection required
 - AI categorization requires OpenAI API key in secrets
