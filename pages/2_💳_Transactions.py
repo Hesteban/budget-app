@@ -117,12 +117,82 @@ edited_df = st.data_editor(
     key=f"tx_editor_{month}_{year}_{user_filter}_{cat_filter}",
 )
 
+desc_changed = edited_df[edited_df["description"] != df["description"]]
+cat_changed = edited_df[edited_df["category"] != df["category"]]
+date_changed = edited_df[edited_df["date"] != df["date"]]
+total_changes = len(desc_changed) + len(cat_changed) + len(date_changed)
+
+# ponytail: selected rows are computed once after the data editor so both
+# Save changes and Apply to selected can reuse the same frame.
+selected = edited_df[edited_df["select"]]
+
 st.divider()
-add_col, _ = st.columns([1, 3])
-with add_col:
+
+edit_col, bulk_col = st.columns([1, 1])
+
+with edit_col:
     if st.button("＋ Add Transaction", use_container_width=True):
         st.session_state["show_add_tx_form"] = True
 
+    if st.button(
+        f"💾 Save changes ({total_changes} pending)",
+        type="primary",
+        disabled=total_changes == 0,
+        use_container_width=True,
+    ):
+        bad_dates = []
+        for _, row in date_changed.iterrows():
+            try:
+                pd.to_datetime(row["date"], format="%d/%m/%Y")
+            except ValueError:
+                bad_dates.append(row["date"])
+        if bad_dates:
+            for d in bad_dates:
+                st.error(f"Invalid date '{d}' — expected DD/MM/YYYY.")
+        else:
+            with st.spinner("Saving…"):
+                for _, row in desc_changed.iterrows():
+                    db.update_transaction_description(row["id"], row["description"])
+                for _, row in date_changed.iterrows():
+                    iso_date = pd.to_datetime(row["date"], format="%d/%m/%Y").strftime("%Y-%m-%d")
+                    db.update_transaction_date(row["id"], iso_date)
+                if len(cat_changed) > 0:
+                    cat_updates = cat_changed[["id", "category"]].to_dict(orient="records")
+                    db.bulk_update_categories(cat_updates)
+                calculator.calculate_settlement(month, year)
+            st.success(f"Saved {total_changes} change(s) and updated settlement.")
+            st.rerun()
+
+with bulk_col:
+    st.caption("Bulk category")
+    bulk_category = st.selectbox(
+        "Set category for selected rows",
+        options=CATEGORIES,
+        index=CATEGORIES.index("common"),
+        key="bulk_category",
+        label_visibility="collapsed",
+    )
+    already_same = not selected.empty and (selected["category"] == bulk_category).all()
+    if st.button(
+        f"Apply to selected ({len(selected)})",
+        disabled=len(selected) == 0 or already_same,
+        type="primary" if len(selected) > 0 else "secondary",
+        use_container_width=True,
+    ):
+        if total_changes > 0:
+            st.warning(
+                "You have unsaved row edits. Save or discard them before bulk-applying."
+            )
+        else:
+            updates = [
+                {"id": row["id"], "category": bulk_category}
+                for _, row in selected.iterrows()
+            ]
+            db.bulk_update_categories(updates)
+            calculator.calculate_settlement(month, year)
+            st.rerun()
+
+# Add transaction form (full width, below the action bar)
 if st.session_state.get("show_add_tx_form"):
     with st.form(key=f"add_tx_form_{month}_{year}", clear_on_submit=True):
         col_date, col_desc, col_amount = st.columns([1, 2, 1])
@@ -167,123 +237,53 @@ if st.session_state.get("show_add_tx_form"):
         st.session_state["show_add_tx_form"] = False
         st.rerun()
 
-desc_changed = edited_df[edited_df["description"] != df["description"]]
-cat_changed = edited_df[edited_df["category"] != df["category"]]
-date_changed = edited_df[edited_df["date"] != df["date"]]
-total_changes = len(desc_changed) + len(cat_changed) + len(date_changed)
-
-# ponytail: selected rows are computed here because the bulk apply widget
-# lives in the same action column as Save changes and Auto-categorize.
-selected = edited_df[edited_df["select"]]
-
-col1, col2 = st.columns([1, 3])
-with col1:
-    if st.button(
-        f"💾 Save changes ({total_changes} pending)",
-        type="primary",
-        disabled=total_changes == 0,
-        use_container_width=True,
-    ):
-        bad_dates = []
-        for _, row in date_changed.iterrows():
-            try:
-                pd.to_datetime(row["date"], format="%d/%m/%Y")
-            except ValueError:
-                bad_dates.append(row["date"])
-        if bad_dates:
-            for d in bad_dates:
-                st.error(f"Invalid date '{d}' — expected DD/MM/YYYY.")
-        else:
-            with st.spinner("Saving…"):
-                for _, row in desc_changed.iterrows():
-                    db.update_transaction_description(row["id"], row["description"])
-                for _, row in date_changed.iterrows():
-                    iso_date = pd.to_datetime(row["date"], format="%d/%m/%Y").strftime("%Y-%m-%d")
-                    db.update_transaction_date(row["id"], iso_date)
-                if len(cat_changed) > 0:
-                    cat_updates = cat_changed[["id", "category"]].to_dict(orient="records")
-                    db.bulk_update_categories(cat_updates)
-                calculator.calculate_settlement(month, year)
-            st.success(f"Saved {total_changes} change(s) and updated settlement.")
-            st.rerun()
-
-    uncategorized_rows = [t for t in all_tx if t["category"] == "uncategorized"]
-    if st.button(
-        f"🤖 Auto-categorize ({len(uncategorized_rows)} left)",
-        disabled=len(uncategorized_rows) == 0,
-        use_container_width=True,
-    ):
-        from budget.agents.ai_categorizer import categorize_transaction, CONFIDENCE_THRESHOLD  # noqa: PLC0415
-        updates = []
-        categorized_results = []
-        skipped_results = []
-        placeholder = st.empty()
-        total = len(uncategorized_rows)
-        for i, tx in enumerate(uncategorized_rows, start=1):
-            placeholder.caption(f"Categorizing {i}/{total}: {tx['description']}…")
-            result = categorize_transaction(tx["description"], tx["amount"], tx["source"])
-            entry = {
-                "description": tx["description"],
-                "amount": tx["amount"],
-                "category": result.category,
-                "confidence": result.confidence,
-                "reasoning": result.reasoning,
-            }
-            if result.confidence >= CONFIDENCE_THRESHOLD:
-                updates.append({"id": tx["id"], "category": result.category, "reasoning": result.reasoning})
-                categorized_results.append(entry)
-            else:
-                skipped_results.append(entry)
-        placeholder.empty()
-        if updates:
-            db.bulk_update_categories(updates)
-            calculator.calculate_settlement(month, year)
-        st.session_state["categorization_results"] = {
-            "categorized": categorized_results,
-            "skipped": skipped_results,
+uncategorized_rows = [t for t in all_tx if t["category"] == "uncategorized"]
+if st.button(
+    f"🤖 Auto-categorize ({len(uncategorized_rows)} left)",
+    disabled=len(uncategorized_rows) == 0,
+    use_container_width=True,
+):
+    from budget.agents.ai_categorizer import categorize_transaction, CONFIDENCE_THRESHOLD  # noqa: PLC0415
+    updates = []
+    categorized_results = []
+    skipped_results = []
+    placeholder = st.empty()
+    total = len(uncategorized_rows)
+    for i, tx in enumerate(uncategorized_rows, start=1):
+        placeholder.caption(f"Categorizing {i}/{total}: {tx['description']}…")
+        result = categorize_transaction(tx["description"], tx["amount"], tx["source"])
+        entry = {
+            "description": tx["description"],
+            "amount": tx["amount"],
+            "category": result.category,
+            "confidence": result.confidence,
+            "reasoning": result.reasoning,
         }
-        st.rerun()
-
-    st.divider()
-    bulk_category = st.selectbox(
-        "Apply category to selected rows",
-        options=CATEGORIES,
-        key="bulk_category",
-    )
-    # ponytail: only block the button when the selection is empty or
-    # every selected row already has the chosen category
-    already_same = not selected.empty and (selected["category"] == bulk_category).all()
-    # ponytail: highlight the button as soon as at least one row is selected
-    if st.button(
-        f"Apply to selected ({len(selected)})",
-        disabled=len(selected) == 0 or already_same,
-        type="primary" if len(selected) > 0 else "secondary",
-        use_container_width=True,
-    ):
-        if total_changes > 0:
-            st.warning(
-                "You have unsaved row edits. Save or discard them before bulk-applying."
-            )
+        if result.confidence >= CONFIDENCE_THRESHOLD:
+            updates.append({"id": tx["id"], "category": result.category, "reasoning": result.reasoning})
+            categorized_results.append(entry)
         else:
-            updates = [
-                {"id": row["id"], "category": bulk_category}
-                for _, row in selected.iterrows()
-            ]
-            db.bulk_update_categories(updates)
-            calculator.calculate_settlement(month, year)
-            st.rerun()
+            skipped_results.append(entry)
+    placeholder.empty()
+    if updates:
+        db.bulk_update_categories(updates)
+        calculator.calculate_settlement(month, year)
+    st.session_state["categorization_results"] = {
+        "categorized": categorized_results,
+        "skipped": skipped_results,
+    }
+    st.rerun()
 
-with col2:
-    # Running totals
-    common_df = edited_df[edited_df["category"] == "common"]
-    personal_df = edited_df[edited_df["category"] == "personal"]
-    uncategorized_df = edited_df[edited_df["category"] == "uncategorized"]
+# Running totals (full width, below the action bar)
+common_df = edited_df[edited_df["category"] == "common"]
+personal_df = edited_df[edited_df["category"] == "personal"]
+uncategorized_df = edited_df[edited_df["category"] == "uncategorized"]
 
-    st.caption(
-        f"**Common:** €{abs(common_df['amount'].sum()):.2f} &nbsp;|&nbsp; "
-        f"**Personal:** €{abs(personal_df['amount'].sum()):.2f} &nbsp;|&nbsp; "
-        f"**Uncategorised:** {len(uncategorized_df)}"
-    )
+st.caption(
+    f"**Common:** €{abs(common_df['amount'].sum()):.2f} &nbsp;|&nbsp; "
+    f"**Personal:** €{abs(personal_df['amount'].sum()):.2f} &nbsp;|&nbsp; "
+    f"**Uncategorised:** {len(uncategorized_df)}"
+)
 
 # --- Autocategorization summary (session-only) ---
 if "categorization_results" in st.session_state:
