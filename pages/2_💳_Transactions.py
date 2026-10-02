@@ -113,8 +113,10 @@ edited_df = st.data_editor(
     hide_index=True,
     use_container_width=True,
     num_rows="fixed",
-    # ponytail: changing filters resets the selection for free via key change
-    key=f"tx_editor_{month}_{year}_{user_filter}_{cat_filter}",
+    # ponytail: changing filters resets the selection for free via key change;
+    # tx_sel_gen does the same after a bulk apply.
+    key=f"tx_editor_{month}_{year}_{user_filter}_{cat_filter}_"
+        f"{st.session_state.get('tx_sel_gen', 0)}",
 )
 
 desc_changed = edited_df[edited_df["description"] != df["description"]]
@@ -190,6 +192,7 @@ with bulk_col:
             ]
             db.bulk_update_categories(updates)
             calculator.calculate_settlement(month, year)
+            st.session_state["tx_sel_gen"] = st.session_state.get("tx_sel_gen", 0) + 1
             st.rerun()
 
 # Add transaction form (full width, below the action bar)

@@ -7,7 +7,7 @@ from __future__ import annotations
 import pytest
 from playwright.sync_api import Page, expect
 
-
+@pytest.mark.skip(reason="Ignore until new credit is available")
 @pytest.mark.e2e
 def test_assistant(assistant_page: Page) -> None:
     """Happy path: Assistant answer questions in the chat"""
