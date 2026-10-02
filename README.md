@@ -49,7 +49,7 @@ anon_key = "your-anon-key"
 password = "shared-password-hash"
 
 [openai]
-api_key = "sk-..."  # Optional, for AI categorization
+api_key = "..."  # OpenCode Zen API key — optional, for AI categorization
 ```
 
 ## Running Locally
@@ -126,4 +126,4 @@ Push to GitHub (ensure `.streamlit/secrets.toml` is in `.gitignore`), then deplo
 
 - **Supabase free tier** pauses after 1 week of inactivity. The included `.github/workflows/keep_supabase_alive.yml` cron job pings Supabase twice a day to prevent pausing; add `SUPABASE_URL` and `SUPABASE_ANON_KEY` as repository secrets.
 - Test mode uses in-memory FakeRepository; no Supabase connection required
-- AI categorization requires OpenAI API key in secrets
+- AI categorization requires an OpenCode Zen API key (pay-as-you-go) in secrets

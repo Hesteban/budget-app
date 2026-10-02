@@ -59,6 +59,7 @@ Pages and the calculator never instantiate repositories directly. The `BudgetRep
 Auto-detects two CSV/Excel export formats ("account" and "card") from a Spanish bank. Handles European number formats (comma decimals, period thousands). `parse_bank_file()` filters to a single month; `parse_bank_file_bulk()` derives month/year from transaction dates for multi-month imports. Deduplicates on `(user, date, description, amount, source)`.
 
 ### AI agents (`budget/agents/`)
+- `_config.py` — Shared LLM setup: points the OpenAI Agents SDK at OpenCode Zen (`OPENAI_BASE_URL=https://opencode.ai/zen/v1`, pay-as-you-go, no expiring credits), disables tracing, defines `MODEL = "gpt-5.4-nano"`, and `log_cost()` prints per-run token usage + estimated $ cost to stdout (`[llm-cost]` lines). Imported for side effects by every agent module.
 - `ai_categorizer.py` — Classifies transactions as `personal`, `common`, `covered`, or `uncategorized` using few-shot prompting. Only auto-applies if confidence ≥ 85%.
 - `ai_summarizer.py` — Generates a Markdown narrative summary of monthly spending with 5 key observations.
 
@@ -95,7 +96,7 @@ anon_key = "..."
 password_hash = "<bcrypt-hash>"
 
 [openai]
-api_key = "sk-..."
+api_key = "..."  # OpenCode Zen API key (from https://opencode.ai/auth), NOT an OpenAI platform key
 
 [bank]
 header_row = 10  # 0-based row index for the header in bank exports

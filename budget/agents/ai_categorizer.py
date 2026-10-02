@@ -15,6 +15,8 @@ from agents import Agent, Runner
 from agents.tracing import trace
 from pydantic import BaseModel, Field
 
+from budget.agents import _config
+
 
 CONFIDENCE_THRESHOLD = 0.85
 
@@ -133,7 +135,7 @@ _FEW_SHOT_MESSAGES = _build_few_shot_messages()
 
 _agent = Agent(
     name="TransactionCategorizer",
-    model="gpt-4o-mini",
+    model=_config.MODEL,
     instructions="""
 You categorize Spanish bank transactions for a couple tracking shared monthly expenses.
 They split common household expenses 50/50.
@@ -176,6 +178,7 @@ def categorize_transaction(description: str, amount: float, source: str) -> Cate
     messages = [*_FEW_SHOT_MESSAGES, {"role": "user", "content": user_message}]
     with trace("categorize_transaction", metadata={"description": description}):
         result = Runner.run_sync(_agent, messages)
+    _config.log_cost(result, "categorize")
     return result.final_output
 
 if __name__ == "__main__":
