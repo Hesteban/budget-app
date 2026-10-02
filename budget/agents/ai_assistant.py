@@ -16,6 +16,7 @@ from agents import Agent, Runner, function_tool
 from openai.types.responses import ResponseTextDeltaEvent
 
 import budget.db as db
+from budget.agents import _config
 
 
 _SENTINEL = object()
@@ -127,7 +128,7 @@ def months_with_data() -> list[dict]:
 
 _agent = Agent(
     name="BudgetAssistant",
-    model="gpt-4o-mini",
+    model=_config.MODEL,
     instructions=_SYSTEM_PROMPT,
     tools=[
         query_transactions,
@@ -149,6 +150,7 @@ async def _stream_to_queue(messages: list[dict], q: queue.Queue) -> None:
                 and isinstance(event.data, ResponseTextDeltaEvent)
             ):
                 q.put(event.data.delta)
+        _config.log_cost(result, "assistant")
     except Exception as exc:
         q.put(exc)
     finally:
