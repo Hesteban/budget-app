@@ -10,6 +10,7 @@ from agents import Agent, Runner
 from agents.tracing import trace
 
 import budget.db as db
+from budget.agents import _config
 
 
 _SYSTEM_PROMPT = """
@@ -31,7 +32,7 @@ Keep the tone friendly and factual. Use € for amounts.
 
 _agent = Agent(
     name="MonthlyFinanceSummarizer",
-    model="gpt-4o-mini",
+    model=_config.MODEL,
     instructions=_SYSTEM_PROMPT,
 )
 
@@ -95,6 +96,7 @@ def generate_monthly_summary(month: int, year: int) -> str:
     with trace("monthly_summary", metadata={"month": month, "year": year}):
         result = Runner.run_sync(_agent, prompt)
 
+    _config.log_cost(result, "summarize")
     return result.final_output  # markdown string
 
 
